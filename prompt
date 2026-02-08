@@ -1,5 +1,7 @@
 motive: to create a Full Stack Google App Script Web Application similar to that of the hotel (Mabon Suites Hotel)
 eCommerce_Form.html will replace hotel_Form.html, but the form submission will be the list of products selected at checkout
+But, will also add the below html files:
+newInventory.html:- another form submitting html-file (also hosted on Google App Script) to add new inventory as a form submission, this is created specifically for the admin staff, and will add a new row on the tab called "Inventory" on Google Sheets (to be created via Setup.gs) 
 
 eCommerce-Form.html
 - wrap social icons in an expandeable button, such that when clicked it expands with the social icons
