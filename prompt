@@ -1,0 +1,20 @@
+motive: to create a Full Stack Google App Script Web Application similar to that of the hotel (Mabon Suites Hotel)
+eCommerce_Form.html will replace hotel_Form.html, but the form submission will be the list of products selected at checkout
+
+eCommerce-Form.html
+- wrap social icons in an expandeable button, such that when clicked it expands with the social icons
+- ad a chatbot just below the expandeable button for social icons
+- preserve the animation when a product is added to the cut (if google app scrpt allows)
+- 
+-
+
+Setup.gs
+- ensure you create the necessary Google Sheet tabs, columns names and schema relations
+
+Code.gs
+- ensure you are able to send an acknowledgement email when the client order, while simultaneously prompting for payment via PayPal (also offer an option for the client to make an EFT payment), but the checkout button should send and email to the client while processing the payment (the client will have to enter their name, surname and email)
+- auto generate a reference number per order (e.g. yymmddGAFA896 = date+{4digits_of_surname}+{random_number}), instruct the client to use this as reference when making an eft banking transfer
+_
+
+Inventory.html:- here, the admin staff will need to be able to manually reduce 
+Submissions.html:- here, the cl
