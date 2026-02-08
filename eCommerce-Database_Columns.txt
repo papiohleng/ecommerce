@@ -1,0 +1,91 @@
+Here's a comprehensive and well-structured eCommerce database design that integrates all the critical columns we discussed. This design covers both essential product information and additional attributes that will allow you to manage your store more effectively, enhance the customer experience, and integrate with your backend systems.
+
+Products Table
+Column Name	Data Type	Purpose
+product_id	INT (PK)	Unique identifier for the product.
+sku	VARCHAR	Stock Keeping Unit, unique product identifier used for inventory management.
+name	VARCHAR	Name of the product.
+desc	TEXT	Detailed description of the product.
+price	DECIMAL(10,2)	Current price of the product.
+original_price	DECIMAL(10,2)	The original price before discounts.
+discount	DECIMAL(5,2)	Discount percentage or amount applied to the product.
+category_id	INT (FK)	Reference to the product category (foreign key).
+image_url	VARCHAR	URL for the product image.
+video_link	VARCHAR	URL to a product video or demo.
+date_listed	DATETIME	Date and time when the product was first listed.
+date_added	DATETIME	Date the product was added to the catalog.
+size	VARCHAR	Size of the product (e.g., S, M, L, XL) or dimension specifications.
+weight	DECIMAL(10,2)	Weight of the product for shipping calculations.
+stock	INT	The number of items available in stock.
+stock_status	VARCHAR	Availability status ("In Stock", "Out of Stock", "Pre-order").
+rating	DECIMAL(3,2)	Average rating (e.g., 4.5/5).
+review_count	INT	Total number of reviews for the product.
+condition	VARCHAR	Product condition ("New", "Used", "Refurbished").
+tags	VARCHAR	Comma-separated list of product tags for search and categorization.
+shipping_class	VARCHAR	Shipping class or method (e.g., standard, expedited).
+shipping_weight	DECIMAL(10,2)	Shipping weight, may differ from product weight.
+shipping_dimensions	VARCHAR	Shipping dimensions (e.g., length x width x height).
+currency	VARCHAR	Currency of the product price (e.g., USD, EUR, GBP).
+product_status	VARCHAR	Status of the product ("Active", "Discontinued", "Archived").
+returnable	BOOLEAN	Whether the product is eligible for returns.
+supplier_id	INT (FK)	Reference to the supplier or manufacturer (foreign key).
+Categories Table
+Column Name	Data Type	Purpose
+category_id	INT (PK)	Unique identifier for the product category.
+name	VARCHAR	Name of the product category (e.g., "Electronics", "Clothing").
+description	TEXT	Description of the category.
+parent_category_id	INT (FK)	Parent category for hierarchical categorization (nullable for root categories).
+Suppliers Table
+Column Name	Data Type	Purpose
+supplier_id	INT (PK)	Unique identifier for the supplier.
+name	VARCHAR	Name of the supplier or manufacturer.
+contact_info	VARCHAR	Supplier's contact details (e.g., email, phone).
+address	TEXT	Physical address of the supplier.
+website_url	VARCHAR	Supplier's website URL.
+Product Variants Table (for managing size, color, or other variants)
+Column Name	Data Type	Purpose
+variant_id	INT (PK)	Unique identifier for the product variant.
+product_id	INT (FK)	Reference to the associated product (foreign key).
+variant_name	VARCHAR	Variant name (e.g., "Large", "Red", "16GB").
+price	DECIMAL(10,2)	Price of the variant, if different from the base product.
+stock	INT	Number of variants available in stock.
+sku	VARCHAR	SKU for the variant.
+weight	DECIMAL(10,2)	Weight of the variant (if different from the main product).
+Product Reviews Table
+Column Name	Data Type	Purpose
+review_id	INT (PK)	Unique identifier for the review.
+product_id	INT (FK)	Reference to the associated product.
+user_id	INT (FK)	Reference to the user who submitted the review.
+rating	DECIMAL(3,2)	Rating given by the user (e.g., 4.5/5).
+comment	TEXT	Review comment or feedback from the user.
+date_submitted	DATETIME	Date and time when the review was submitted.
+Users Table (for customer-related data)
+Column Name	Data Type	Purpose
+user_id	INT (PK)	Unique identifier for the user.
+first_name	VARCHAR	User's first name.
+last_name	VARCHAR	User's last name.
+email	VARCHAR	User's email address (must be unique).
+password_hash	VARCHAR	Hashed password for secure authentication.
+phone_number	VARCHAR	User's phone number.
+address	TEXT	Shipping address (can be split into street, city, state, zip, etc.).
+date_registered	DATETIME	Date and time when the user account was created.
+Orders Table (for tracking customer orders)
+Column Name	Data Type	Purpose
+order_id	INT (PK)	Unique identifier for the order.
+user_id	INT (FK)	Reference to the customer who placed the order.
+order_date	DATETIME	Date and time when the order was placed.
+total_amount	DECIMAL(10,2)	Total amount of the order (after discounts).
+shipping_address	TEXT	Shipping address (can be different from user's registered address).
+order_status	VARCHAR	Status of the order (e.g., "Pending", "Shipped", "Delivered", "Cancelled").
+payment_status	VARCHAR	Payment status (e.g., "Paid", "Pending", "Failed").
+shipping_method	VARCHAR	Shipping method chosen by the customer.
+tracking_number	VARCHAR	Tracking number for the shipment (if applicable).
+Order Items Table (for items within each order)
+Column Name	Data Type	Purpose
+order_item_id	INT (PK)	Unique identifier for the order item.
+order_id	INT (FK)	Reference to the associated order.
+product_id	INT (FK)	Reference to the associated product.
+variant_id	INT (FK)	Reference to the product variant (nullable if no variant).
+quantity	INT	Quantity of the product ordered.
+price	DECIMAL(10,2)	Price of the product at the time of purchase.
+subtotal	DECIMAL(10,2)	Subtotal price for the item (quantity x price).
