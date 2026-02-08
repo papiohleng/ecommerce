@@ -16,5 +16,7 @@ Code.gs
 - auto generate a reference number per order (e.g. yymmddGAFA896 = date+{4digits_of_surname}+{random_number}), instruct the client to use this as reference when making an eft banking transfer
 _
 
-Inventory.html:- here, the admin staff will need to be able to manually reduce 
+Inventory.html:- here, the admin staff will need to be able to manually reduce the number of items based on orders received, be able to add comments; change product decriptions; sizes;colours;original amount; current amount; (just like the )
+ auto compute the discount in Form.html (discount%=original_amount - current amount); which will also be done by the static website parsing the api of the tab named "Inventory" 
+
 Submissions.html:- here, the cl
