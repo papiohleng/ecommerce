@@ -23,8 +23,8 @@ function runSetup() {
   Logger.log('========================================');
 
   // *** REPLACE THESE WITH YOUR OWN IDs ***
-  var SPREADSHEET_ID = '1NnsMcz3r6yGfzkXhI3SyF5RwMfKTR2USrxt89Qn5gfI';
-  var DRIVE_FOLDER_ID = '1TfQhap8ZU0vbdyfLDcBh9vJFixo03JTZ';
+  var SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE';
+  var DRIVE_FOLDER_ID = 'YOUR_DRIVE_FOLDER_ID_HERE';
 
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   Logger.log('Spreadsheet: ' + ss.getName());
@@ -222,7 +222,7 @@ function setupSheet(ss, name, headers, color) {
 }
 
 function testSetup() {
-  var SPREADSHEET_ID = '1NnsMcz3r6yGfzkXhI3SyF5RwMfKTR2USrxt89Qn5gfI';
+  var SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE';
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheets = ['Inventory', 'Orders', 'Transactions', 'Comments', 'Deleted', 'SystemLogs'];
   for (var i = 0; i < sheets.length; i++) {
