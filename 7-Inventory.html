@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory Manager - Maboneng Art</title>
+  <base target="_top">
+  <script src="https://unpkg.com/feather-icons"></script>
+  <style>
+    :root{--bg:#fafafa;--text:#18181b;--card:white;--border:#e4e4e7;--accent:#18181b;--gold:#c9a962;--danger:#ef4444;--success:#22c55e;--info:#3b82f6;--warning:#f59e0b;}
+    [data-theme="dark"]{--bg:#0a0a0a;--text:#fafafa;--card:#141414;--border:#262626;--accent:#fafafa;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);transition:0.3s;}
+
+    .admin-nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--card);border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;padding:0 16px;gap:8px;}
+    .nav-brand{font-weight:800;font-size:18px;color:var(--gold);margin-right:16px;white-space:nowrap;}
+    .nav-links{display:flex;gap:4px;overflow-x:auto;flex:1;}
+    .nav-link{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text);text-decoration:none;white-space:nowrap;transition:0.2s;border:1px solid transparent;}
+    .nav-link:hover{background:rgba(201,169,98,0.1);border-color:var(--gold);}
+    .nav-link.active{background:var(--gold);color:#000;}
+    .nav-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+    .theme-btn{background:none;border:none;color:var(--text);cursor:pointer;padding:8px;}
+
+    .controls{display:flex;gap:12px;padding:72px 16px 12px;flex-wrap:wrap;align-items:center;}
+    .search-input{flex:1;min-width:200px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;outline:none;}
+    .search-input:focus{border-color:var(--gold);}
+    .stat-pill{background:var(--card);border:1px solid var(--border);padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;}
+
+    .inv-grid{padding:8px 16px 100px;display:grid;gap:12px;}
+    @media(min-width:768px){.inv-grid{grid-template-columns:repeat(2,1fr);}}
+    @media(min-width:1200px){.inv-grid{grid-template-columns:repeat(3,1fr);}}
+
+    .inv-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:0.3s;}
+    .inv-card:hover{border-color:var(--gold);box-shadow:0 4px 20px rgba(201,169,98,0.15);}
+    .inv-card-top{display:flex;gap:14px;padding:16px;}
+    .inv-image{width:80px;height:80px;object-fit:cover;border-radius:10px;background:var(--bg);}
+    .inv-info{flex:1;min-width:0;}
+    .inv-name{font-size:16px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .inv-sku{font-size:12px;color:var(--gold);margin-bottom:6px;}
+    .inv-meta{display:flex;gap:8px;flex-wrap:wrap;}
+    .inv-tag{font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(201,169,98,0.1);color:var(--gold);font-weight:600;}
+
+    .inv-card-body{padding:0 16px 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+    .inv-field{text-align:center;}
+    .inv-field label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);display:block;margin-bottom:4px;}
+    .inv-field span{font-size:16px;font-weight:700;}
+    .inv-field.low span{color:var(--danger);}
+
+    .inv-card-footer{padding:10px 16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+    .stock-controls{display:flex;align-items:center;gap:6px;}
+    .stock-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:0.2s;}
+    .stock-btn:hover{border-color:var(--gold);background:rgba(201,169,98,0.1);}
+    .stock-display{font-size:18px;font-weight:800;min-width:40px;text-align:center;}
+    .edit-btn{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;transition:0.2s;display:flex;align-items:center;gap:4px;}
+    .edit-btn:hover{border-color:var(--gold);background:rgba(201,169,98,0.1);}
+
+    /* Inline Edit Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:none;justify-content:center;align-items:center;padding:20px;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:var(--card);border:1px solid var(--border);border-radius:16px;max-width:600px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+    .modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+    .modal-header h2{font-size:18px;font-weight:800;color:var(--gold);}
+    .modal-close{background:none;border:none;color:var(--text);font-size:24px;cursor:pointer;}
+    .modal-body{padding:24px;}
+    .edit-field{margin-bottom:14px;}
+    .edit-field label{font-size:12px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px;}
+    .edit-field input,.edit-field select{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;}
+    .save-btn{width:100%;padding:14px;background:var(--gold);color:#000;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;margin-top:12px;}
+
+    .loading{text-align:center;padding:80px 20px;font-size:16px;}
+    .empty-state{text-align:center;padding:80px 20px;}
+  </style>
+</head>
+<body>
+
+  <nav class="admin-nav">
+    <span class="nav-brand">Maboneng Art</span>
+    <div class="nav-links">
+      <a href="?action=shop" class="nav-link">Shop</a>
+      <a href="?action=admin" class="nav-link">Orders</a>
+      <a href="?action=inventory" class="nav-link active">Inventory</a>
+      <a href="?action=new-inventory" class="nav-link">+ New</a>
+      <a href="?action=transactions" class="nav-link">Transactions</a>
+      <a href="?action=deleted" class="nav-link">Deleted</a>
+    </div>
+    <div class="nav-right"><button class="theme-btn" id="themeToggle"><i data-feather="moon"></i></button></div>
+  </nav>
+
+  <div class="controls">
+    <input type="text" class="search-input" id="searchInput" placeholder="Search products by name, SKU, category...">
+    <span class="stat-pill" id="totalPill">Total: -</span>
+    <span class="stat-pill" id="lowPill" style="color:var(--danger)">Low Stock: -</span>
+  </div>
+
+  <div class="loading" id="loadingState">Loading inventory...</div>
+  <div class="inv-grid" id="invGrid" style="display:none;"></div>
+  <div class="empty-state" id="emptyState" style="display:none;"><h3>No products found</h3><p>Add products via the + New page.</p></div>
+
+  <!-- Edit Modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <div class="modal-header"><h2 id="editTitle">Edit Product</h2><button class="modal-close" onclick="closeEdit()">X</button></div>
+      <div class="modal-body" id="editBody"></div>
+    </div>
+  </div>
+
+<script>
+  feather.replace();
+  var inventory = [];
+
+  document.getElementById('themeToggle').onclick = function(){
+    var d = document.documentElement.getAttribute('data-theme')==='dark';
+    document.documentElement.setAttribute('data-theme', d?'light':'dark');
+  };
+
+  document.getElementById('searchInput').addEventListener('input', function(){ renderInventory(); });
+
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function renderInventory(){
+    var search = document.getElementById('searchInput').value.toLowerCase();
+    var filtered = inventory.filter(function(p){
+      if(!search) return true;
+      return (p.name+' '+p.sku+' '+p.category+' '+p.artist+' '+p.id).toLowerCase().indexOf(search) > -1;
+    });
+
+    var grid = document.getElementById('invGrid');
+    var empty = document.getElementById('emptyState');
+
+    if(filtered.length===0){ grid.style.display='none'; empty.style.display='block'; return; }
+    empty.style.display='none'; grid.style.display='grid';
+
+    grid.innerHTML = filtered.map(function(p){
+      var isLow = p.stock <= p.minStock && p.stock > 0;
+      var isOut = p.stock <= 0;
+      var discount = p.originalPrice > 0 ? Math.round((p.originalPrice - p.currentPrice)/p.originalPrice*100) : 0;
+
+      return '<div class="inv-card">'
+        +'<div class="inv-card-top">'
+        +'<img src="'+(p.image1||'https://via.placeholder.com/80')+'" class="inv-image" crossorigin="anonymous" alt="'+esc(p.name)+'">'
+        +'<div class="inv-info"><div class="inv-name">'+esc(p.name)+'</div><div class="inv-sku">'+esc(p.sku||p.id)+'</div>'
+        +'<div class="inv-meta">'
+        +'<span class="inv-tag">'+esc(p.category)+'</span>'
+        +(p.artist?'<span class="inv-tag">'+esc(p.artist)+'</span>':'')
+        +(isLow?'<span class="inv-tag" style="background:rgba(239,68,68,0.15);color:var(--danger)">LOW STOCK</span>':'')
+        +(isOut?'<span class="inv-tag" style="background:rgba(239,68,68,0.15);color:var(--danger)">OUT OF STOCK</span>':'')
+        +'</div></div></div>'
+        +'<div class="inv-card-body">'
+        +'<div class="inv-field"><label>Original</label><span style="text-decoration:line-through;opacity:0.5">$'+p.originalPrice.toFixed(2)+'</span></div>'
+        +'<div class="inv-field"><label>Price</label><span style="color:var(--gold)">$'+p.currentPrice.toFixed(2)+'</span></div>'
+        +'<div class="inv-field"><label>Discount</label><span style="color:var(--success)">'+discount+'%</span></div>'
+        +'</div>'
+        +'<div class="inv-card-footer">'
+        +'<div class="stock-controls">'
+        +'<button class="stock-btn" onclick="adjustStock(\''+esc(p.id)+'\',-1)">-</button>'
+        +'<span class="stock-display'+(isLow||isOut?' low':'')+'">'+p.stock+'</span>'
+        +'<button class="stock-btn" onclick="adjustStock(\''+esc(p.id)+'\',1)">+</button>'
+        +'</div>'
+        +'<div style="display:flex;gap:6px;">'
+        +'<span style="font-size:11px;opacity:0.5;">Sold: '+p.totalSold+'</span>'
+        +'<button class="edit-btn" onclick="openEdit(\''+esc(p.id)+'\')"><i data-feather="edit-2" style="width:12px;height:12px;"></i> Edit</button>'
+        +'</div></div></div>';
+    }).join('');
+    feather.replace();
+
+    // Update pills
+    document.getElementById('totalPill').textContent = 'Total: ' + inventory.length;
+    var low = inventory.filter(function(p){return p.stock > 0 && p.stock <= p.minStock;}).length;
+    document.getElementById('lowPill').textContent = 'Low Stock: ' + low;
+  }
+
+  function adjustStock(id, delta){
+    var p = inventory.find(function(x){return x.id===id;});
+    if(!p) return;
+    var newStock = Math.max(0, p.stock + delta);
+    p.stock = newStock;
+    renderInventory();
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.updateInventoryItem({productId:id,field:'stock',value:newStock,updatedBy:'Admin'});
+    }
+  }
+
+  function openEdit(id){
+    var p = inventory.find(function(x){return x.id===id;});
+    if(!p) return;
+    document.getElementById('editTitle').textContent = 'Edit: ' + p.name;
+    document.getElementById('editBody').innerHTML = ''
+      +'<div class="edit-field"><label>Name</label><input id="ef_name" value="'+esc(p.name)+'"></div>'
+      +'<div class="edit-field"><label>Category</label><input id="ef_category" value="'+esc(p.category)+'"></div>'
+      +'<div class="edit-field"><label>Current Price ($)</label><input type="number" id="ef_price" value="'+p.currentPrice+'" step="0.01"></div>'
+      +'<div class="edit-field"><label>Original Price ($)</label><input type="number" id="ef_original" value="'+p.originalPrice+'" step="0.01"></div>'
+      +'<div class="edit-field"><label>Stock</label><input type="number" id="ef_stock" value="'+p.stock+'"></div>'
+      +'<div class="edit-field"><label>Status</label><select id="ef_status"><option value="active"'+(p.status==='active'?' selected':'')+'>Active</option><option value="inactive"'+(p.status==='inactive'?' selected':'')+'>Inactive</option><option value="archived"'+(p.status==='archived'?' selected':'')+'>Archived</option></select></div>'
+      +'<div class="edit-field"><label>Image 1 URL</label><input id="ef_image1" value="'+esc(p.image1)+'"></div>'
+      +'<div class="edit-field"><label>Image 2 URL</label><input id="ef_image2" value="'+esc(p.image2)+'"></div>'
+      +'<div class="edit-field"><label>Image 3 URL</label><input id="ef_image3" value="'+esc(p.image3)+'"></div>'
+      +'<button class="save-btn" onclick="saveEdit(\''+esc(id)+'\')">Save Changes</button>';
+    document.getElementById('editModal').classList.add('open');
+  }
+
+  function saveEdit(id){
+    var fields = {name:'ef_name',category:'ef_category',currentPrice:'ef_price',originalPrice:'ef_original',stock:'ef_stock',status:'ef_status',image1:'ef_image1',image2:'ef_image2',image3:'ef_image3'};
+    var p = inventory.find(function(x){return x.id===id;});
+    if(!p) return;
+
+    Object.keys(fields).forEach(function(key){
+      var el = document.getElementById(fields[key]);
+      if(!el) return;
+      var val = el.value;
+      if(key==='currentPrice'||key==='originalPrice') val = parseFloat(val)||0;
+      if(key==='stock') val = parseInt(val)||0;
+      p[key] = val;
+
+      if(typeof google !== 'undefined' && google.script && google.script.run){
+        google.script.run.updateInventoryItem({productId:id,field:key,value:val,updatedBy:'Admin'});
+      }
+    });
+    closeEdit();
+    renderInventory();
+  }
+
+  function closeEdit(){ document.getElementById('editModal').classList.remove('open'); }
+
+  function loadInventory(){
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){
+        inventory = (r.products || []).map(function(p){
+          return {id:p.id,sku:p.sku||'',name:p.name||'',description:p.desc||p.description||'',category:p.category||'',artist:p.artist||'',originalPrice:parseFloat(p.original||p.originalPrice)||0,currentPrice:parseFloat(p.price||p.currentPrice)||0,stock:parseInt(p.stock)||0,minStock:parseInt(p.minStock)||5,image1:p.image||p.image1||'',image2:p.image2||'',image3:p.image3||'',status:p.status||'active',totalSold:parseInt(p.totalSold)||0,featured:p.featured||false};
+        });
+        document.getElementById('loadingState').style.display='none';
+        renderInventory();
+      }).withFailureHandler(function(e){
+        document.getElementById('loadingState').innerHTML='<p style="color:var(--danger)">Error: '+e.message+'</p>';
+      }).getInventoryForStorefront();
+    } else {
+      inventory = [
+        {id:'PROD-001',sku:'ART-001',name:'Abstract Gold Horizon',description:'Acrylic on Canvas',category:'Paintings',artist:'N. Molefe',originalPrice:299,currentPrice:89,stock:3,minStock:5,image1:'https://picsum.photos/seed/art1/400/400',image2:'https://picsum.photos/seed/art1b/400/400',image3:'',status:'active',totalSold:12,featured:true},
+        {id:'PROD-002',sku:'ART-002',name:'Urban Pulse Sculpture',description:'Mixed Media Steel',category:'Sculptures',artist:'T. Nkosi',originalPrice:450,currentPrice:179,stock:2,minStock:5,image1:'https://picsum.photos/seed/art2/400/400',image2:'',image3:'',status:'active',totalSold:5,featured:false},
+        {id:'PROD-003',sku:'ART-003',name:'Serengeti Sunset Print',description:'Limited Edition Giclee',category:'Prints',artist:'L. Dube',originalPrice:120,currentPrice:39,stock:15,minStock:5,image1:'https://picsum.photos/seed/art3/400/400',image2:'',image3:'',status:'active',totalSold:28,featured:true},
+        {id:'PROD-004',sku:'ART-004',name:'Ancestral Weave Tapestry',description:'Handwoven Wool',category:'Textiles',artist:'S. Khumalo',originalPrice:680,currentPrice:249,stock:1,minStock:2,image1:'https://picsum.photos/seed/art4/400/400',image2:'',image3:'',status:'active',totalSold:3,featured:false}
+      ];
+      document.getElementById('loadingState').style.display='none';
+      renderInventory();
+    }
+  }
+
+  loadInventory();
+</script>
+</body>
+</html>

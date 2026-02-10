@@ -1,0 +1,1210 @@
+================================================================================
+ MABONENG ART eCOMMERCE PLATFORM - COMPLETE DEVELOPER DOCUMENTATION
+================================================================================
+ Version: 2.0.0
+ Platform: Google Apps Script (GAS)
+ Runtime: Rhino + V8 Compatible (var only, no const/let/arrow/spread)
+ Author: v0 AI Architect
+ Last Updated: 2026-02-10
+================================================================================
+
+
+================================================================================
+ TABLE OF CONTENTS
+================================================================================
+
+ 1.  SYSTEM OVERVIEW
+ 2.  ARCHITECTURE DIAGRAM (UML TEXT)
+ 3.  FILE INVENTORY
+ 4.  DATABASE SCHEMA (Google Sheets)
+ 5.  SETUP.GS - ALL FUNCTIONS
+ 6.  CODE.GS - ALL FUNCTIONS (38 FUNCTIONS)
+ 7.  FORM.HTML - STOREFRONT
+ 8.  SUBMISSIONS.HTML - ADMIN ORDERS DASHBOARD
+ 9.  INVENTORY.HTML - PRODUCT MANAGEMENT
+ 10. NEWINVENTORY.HTML - ADD NEW PRODUCT
+ 11. TRANSACTIONS.HTML - FINANCIAL LEDGER
+ 12. DELETED.HTML - SOFT-DELETE ARCHIVE
+ 13. DATA FLOW DIAGRAMS
+ 14. API REFERENCE (doGet + doPost ROUTES)
+ 15. DEPLOYMENT GUIDE (STEP-BY-STEP)
+ 16. SECURITY CONSIDERATIONS
+ 17. TROUBLESHOOTING
+
+
+================================================================================
+ 1. SYSTEM OVERVIEW
+================================================================================
+
+Maboneng Art is a full-stack eCommerce platform built entirely on Google Apps 
+Script. It uses Google Sheets as a relational database, Google Drive for file
+storage, Gmail for transactional emails, and Google Docs for PDF generation.
+
+KEY CAPABILITIES:
+  - Public storefront with real-time inventory and shopping cart
+  - Dual payment gateway (PayPal SDK + EFT bank transfer)
+  - Admin dashboard with order lifecycle management
+  - Full transaction/billing ledger with CRUD and auto-balance
+  - Inventory management with stock controls and inline editing
+  - Automated emails with PDF invoice attachments
+  - Soft-delete with restore (tombstone pattern)
+  - System audit logging for all mutations
+  - Dark/Light theme toggle across all pages
+  - Chatbot assistant on storefront
+  - Social media FAB (expandable floating action button)
+  - Auto-rotating product images every 5 seconds
+
+TECH STACK:
+  - Backend: Google Apps Script (V8/Rhino compatible)
+  - Database: Google Sheets (6 sheets, 79 total columns)
+  - Storage: Google Drive (PDF invoices, attachments)
+  - Email: Gmail (MailApp API)
+  - PDF: Google Docs API (create -> convert -> trash)
+  - Frontend: Vanilla HTML/CSS/JS (no frameworks)
+  - Icons: Feather Icons CDN
+  - Payments: PayPal JS SDK + EFT instructions
+  - Hosting: Google Apps Script Web App (doGet/doPost)
+
+
+================================================================================
+ 2. ARCHITECTURE DIAGRAM (UML TEXT)
+================================================================================
+
++------------------------------------------------------------------+
+|                    GOOGLE APPS SCRIPT ENGINE                      |
+|                                                                   |
+|  +------------------+    +------------------+                     |
+|  |    Setup.gs       |    |     Code.gs       |                   |
+|  |  (2 functions)    |    |  (38 functions)   |                   |
+|  |  - runSetup()     |    |  - doGet()        |                   |
+|  |  - testSetup()    |    |  - doPost()       |                   |
+|  +--------+---------+    |  - serve()         |                   |
+|           |               |  - jsonResponse()  |                  |
+|           v               |  - submitOrder()   |                  |
+|  +------------------+    |  - processCheckout()|                  |
+|  | HELPER: setupSheet|    |  - 34 more...     |                  |
+|  +------------------+    +--------+----------+                   |
++------------------------------------------------------------------+
+                                     |
+                     +---------------+----------------+
+                     |               |                |
+                     v               v                v
+          +----------+--+  +--------+------+  +------+--------+
+          | HTML SERVICE |  | CONTENT SRVC  |  | GOOGLE APIS   |
+          | (6 pages)    |  | (JSON API)    |  |               |
+          +--------------+  +---------------+  | - Sheets API  |
+          | Form.html    |  | GET endpoints |  | - Drive API   |
+          | Submissions  |  | POST endpoints|  | - Mail API    |
+          | Inventory    |  +---------------+  | - Docs API    |
+          | newInventory |                     +-------+-------+
+          | Transactions |                             |
+          | Deleted      |                             v
+          +------+-------+              +--------------+--------+
+                 |                      |  GOOGLE SHEETS DB     |
+                 v                      |                       |
+    +------------+----------+           |  +--Inventory (30)--+ |
+    | CLIENT BROWSER        |           |  +--Orders (26)-----+ |
+    |                       |           |  +--Transactions (8)+ |
+    | - localStorage (cart) |           |  +--Comments (5)----+ |
+    | - PayPal SDK          |           |  +--Deleted (5)-----+ |
+    | - Feather Icons       |           |  +--SystemLogs (5)--+ |
+    | - google.script.run   |           +-----------------------+
+    +-----------------------+
+
+
+--- CLASS DIAGRAM (ENTITY RELATIONSHIPS) ---
+
++------------------+          +-------------------+
+|    INVENTORY     |          |      ORDERS       |
++------------------+          +-------------------+
+| PK: Product_ID   |   1..* | PK: Reference      |
+| SKU              |<--------| Timestamp          |
+| Name             |  items  | Status             |
+| Description      |  refer  | Customer_Name      |
+| Category         |  to     | Customer_Surname   |
+| Original_Price   |  these  | Email              |
+| Current_Price    |         | Items_JSON (FK)    |
+| Stock            |         | Total_Amount       |
+| Image_1/2/3      |         | Payment_Method     |
+| Status           |         | Payment_Status     |
+| Total_Sold       |         +--------+-----------+
++------------------+                  |
+                                      | 1
+                                      |
+                        +-------------+-------------+
+                        |             |             |
+                        v 0..*        v 0..*        v 0..1
+              +---------+---+ +------+------+ +----+-------+
+              | TRANSACTIONS| |  COMMENTS   | |  DELETED   |
+              +-------------+ +-------------+ +------------+
+              | PK: Txn_ID  | | PK: Cmt_ID | | Reference  |
+              | FK: Reference| | FK:Reference| | Deleted_At|
+              | Date        | | Author      | | Reason    |
+              | Description | | Text        | | Snapshot  |
+              | Amount      | | Timestamp   | +------------+
+              | Type        | +-------------+
+              | Created_At  |
+              +-------------+
+                                      |
+                        +-------------+
+                        v 0..*
+              +---------+---+
+              | SYSTEM_LOGS |
+              +-------------+
+              | PK: Log_ID  |
+              | Timestamp   |
+              | Action      |
+              | User        |
+              | Details     |
+              +-------------+
+
+
+--- SEQUENCE DIAGRAM: CUSTOMER CHECKOUT ---
+
+Customer          Form.html          Code.gs          Sheets         Gmail
+   |                 |                  |                |              |
+   |--Add to Cart--->|                  |                |              |
+   |                 |--localStorage--->|                |              |
+   |--Checkout------>|                  |                |              |
+   |                 |--processCheckout>|                |              |
+   |                 |                  |--appendRow---->| Orders       |
+   |                 |                  |--deductStock-->| Inventory    |
+   |                 |                  |--appendRow---->| Transactions |
+   |                 |                  |--appendRow---->| Comments     |
+   |                 |                  |--appendRow---->| SystemLogs   |
+   |                 |                  |--generatePDF-->| (Drive)      |
+   |                 |                  |--sendEmail---->|              |-->Email
+   |                 |<--{reference}----|                |              |
+   |<--Order Confirm-|                  |                |              |
+
+
+--- SEQUENCE DIAGRAM: ADMIN TRANSACTION MANAGEMENT ---
+
+Admin         Submissions.html       Code.gs           Sheets
+  |                |                    |                  |
+  |--View Order--->|                    |                  |
+  |                |--loadTransactions->|                  |
+  |                |                    |--getByRef------->| Transactions
+  |                |<--{transactions}---|                  |
+  |                |--renderTransactions|                  |
+  |                |                    |                  |
+  |--Add Txn------>|                    |                  |
+  |                |--addTransaction--->|                  |
+  |                |                    |--appendRow------>| Transactions
+  |                |                    |--appendRow------>| Comments
+  |                |                    |--appendRow------>| SystemLogs
+  |                |<--{success}--------|                  |
+  |                |--recalcBalance---->|                  |
+  |<--Updated UI---|                    |                  |
+  |                |                    |                  |
+  |--Edit Txn----->|                    |                  |
+  |                |--updateTransaction>|                  |
+  |                |                    |--setValues------>| Transactions
+  |                |<--{success}--------|                  |
+  |                |--recalcBalance---->|                  |
+  |                |                    |                  |
+  |--Delete Txn--->|                    |                  |
+  |                |--deleteTransaction>|                  |
+  |                |                    |--deleteRow------>| Transactions
+  |                |<--{success}--------|                  |
+  |                |--recalcBalance---->|                  |
+
+
+--- SEQUENCE DIAGRAM: SOFT DELETE + RESTORE ---
+
+Admin         Submissions.html       Code.gs           Sheets
+  |                |                    |                  |
+  |--Delete Order->|                    |                  |
+  |                |--moveToDeleted---->|                  |
+  |                |                    |--JSON.stringify->|
+  |                |                    |--appendRow------>| Deleted (snapshot)
+  |                |                    |--deleteRow------>| Orders
+  |                |                    |--appendRow------>| Comments
+  |                |                    |--appendRow------>| SystemLogs
+  |                |<--{success}--------|                  |
+  |                |                    |                  |
+  |--Restore------>| (from Deleted.html)|                  |
+  |                |--restoreFromDel--->|                  |
+  |                |                    |--JSON.parse----->|
+  |                |                    |--appendRow------>| Orders (restored)
+  |                |                    |--deleteRow------>| Deleted
+  |                |                    |--appendRow------>| Comments
+  |                |                    |--appendRow------>| SystemLogs
+  |                |<--{success}--------|                  |
+
+
+================================================================================
+ 3. FILE INVENTORY
+================================================================================
+
+ FILE               | TYPE | LINES | PURPOSE
+--------------------|------|-------|------------------------------------------
+ Setup.gs           | .gs  |  233  | One-time setup: creates 6 sheets with
+                    |      |       | headers, formatting, frozen rows
+ Code.gs            | .gs  | 1100  | Full backend: routing, CRUD, billing,
+                    |      |       | emails, PDF, audit logging (38 functions)
+ Form.html          | .html|  562  | Public storefront: product grid, cart,
+                    |      |       | checkout, chatbot, social FAB
+ Submissions.html   | .html|  774  | Admin orders: stats, search, view modal,
+                    |      |       | transaction CRUD, comments, email/delete
+ Inventory.html     | .html|  251  | Inventory manager: stock +/-, inline
+                    |      |       | edit modal, low stock alerts
+ newInventory.html  | .html|  198  | Add product form: 25 fields across
+                    |      |       | 5 sections (basic, specs, pricing, media)
+ Transactions.html  | .html|  355  | Financial ledger: 3 tabs (General Ledger,
+                    |      |       | Client Accounts, Profit & Loss)
+ Deleted.html       | .html|  185  | Soft-delete archive: restore or
+                    |      |       | permanently purge cancelled orders
+--------------------|------|-------|------------------------------------------
+ TOTAL              |      | 3658  |
+
+
+================================================================================
+ 4. DATABASE SCHEMA (Google Sheets)
+================================================================================
+
+--- SHEET 1: Inventory (30 columns, header color: #c9a962 Gold) ---
+
+ COL | INDEX | NAME             | TYPE     | NOTES
+-----|-------|------------------|----------|-----------------------------
+  A  |   0   | Product_ID       | String   | PK. Auto: "PROD-XXXXXXXX"
+  B  |   1   | SKU              | String   | Stock Keeping Unit
+  C  |   2   | Name             | String   | Product display name
+  D  |   3   | Description      | String   | Full description
+  E  |   4   | Category         | String   | Paintings/Sculptures/etc.
+  F  |   5   | Sub_Category     | String   | Sub-category
+  G  |   6   | Size             | String   | Small | Medium | Large
+  H  |   7   | Dimensions       | String   | e.g. "40x60cm"
+  I  |   8   | Weight_KG        | Number   | Weight in kilograms
+  J  |   9   | Colour           | String   | Primary colour
+  K  |  10   | Material         | String   | Canvas, Steel, etc.
+  L  |  11   | Artist           | String   | Artist name
+  M  |  12   | Original_Price   | Number   | Original price (USD)
+  N  |  13   | Current_Price    | Number   | Sale/current price (USD)
+  O  |  14   | Cost_Price       | Number   | Cost for profit calc
+  P  |  15   | Stock            | Integer  | Current stock quantity
+  Q  |  16   | Min_Stock        | Integer  | Low stock alert threshold
+  R  |  17   | Image_1          | URL      | Primary image
+  S  |  18   | Image_2          | URL      | Secondary image
+  T  |  19   | Image_3          | URL      | Tertiary image
+  U  |  20   | Video_URL        | URL      | MP4/GIF video
+  V  |  21   | Date_Listed      | ISO Date | When product was added
+  W  |  22   | Last_Updated     | ISO Date | Last modification
+  X  |  23   | Status           | String   | active | inactive | archived
+  Y  |  24   | Featured         | Boolean  | Show on homepage
+  Z  |  25   | Tags             | String   | Comma-separated tags
+  AA |  26   | Shipping_Class   | String   | standard | express | fragile
+  AB |  27   | Country_Origin   | String   | Country of origin
+  AC |  28   | Total_Sold       | Integer  | Cumulative units sold
+  AD |  29   | Notes            | String   | Internal admin notes
+
+
+--- SHEET 2: Orders (26 columns, header color: #18181b Dark) ---
+
+ COL | INDEX | NAME               | TYPE     | NOTES
+-----|-------|--------------------|----------|-----------------------------
+  A  |   0   | Reference          | String   | PK. "YYMMDDSSSS###"
+  B  |   1   | Timestamp          | ISO Date | Order submission time
+  C  |   2   | Status             | String   | new|processing|shipped|
+     |       |                    |          | delivered|cancelled|refunded
+  D  |   3   | Customer_Name      | String   | First name
+  E  |   4   | Customer_Surname   | String   | Surname
+  F  |   5   | Email              | String   | Email address
+  G  |   6   | Phone              | String   | Phone number
+  H  |   7   | Country            | String   | Default: South Africa
+  I  |   8   | Shipping_Address   | String   | Full street address
+  J  |   9   | City               | String   | City
+  K  |  10   | Postal_Code        | String   | ZIP/Postal code
+  L  |  11   | Items_JSON         | JSON     | [{id,name,qty,price,original}]
+  M  |  12   | Item_Count         | Integer  | Total quantity
+  N  |  13   | Subtotal           | Number   | Sum of item prices
+  O  |  14   | Shipping_Fee       | Number   | 0 if over $50, else 9.99
+  P  |  15   | Discount_Amount    | Number   | Applied discount
+  Q  |  16   | Total_Savings      | Number   | (original-price)*qty sum
+  R  |  17   | Total_Amount       | Number   | subtotal+shipping-discount
+  S  |  18   | Payment_Method     | String   | paypal | eft | pending
+  T  |  19   | Payment_Status     | String   | pending|paid|partial|refunded
+  U  |  20   | PayPal_Transaction | String   | PayPal transaction ID
+  V  |  21   | EFT_Reference      | String   | Banking reference
+  W  |  22   | Confirmation_Sent  | Boolean  | Email sent flag
+  X  |  23   | Tracking_Number    | String   | Shipping tracking
+  Y  |  24   | Notes              | String   | Admin notes
+  Z  |  25   | Last_Updated       | ISO Date | Last modification
+
+
+--- SHEET 3: Transactions (8 columns, header color: #059669 Green) ---
+
+ COL | INDEX | NAME           | TYPE     | NOTES
+-----|-------|----------------|----------|-----------------------------
+  A  |   0   | Transaction_ID | String   | PK. UUID via Utilities.getUuid()
+  B  |   1   | Reference      | String   | FK -> Orders.Reference
+  C  |   2   | Date           | String   | Transaction date
+  D  |   3   | Description    | String   | What the transaction is for
+  E  |   4   | Amount         | Number   | Positive=debit, Negative=credit
+  F  |   5   | Type           | String   | CHARGE|PAYMENT|REFUND|ADJUSTMENT
+  G  |   6   | Created_By     | String   | Admin | SYSTEM
+  H  |   7   | Created_At     | ISO Date | Auto-generated timestamp
+
+
+--- SHEET 4: Comments (5 columns, header color: #a88a4a Amber) ---
+
+ COL | INDEX | NAME       | TYPE     | NOTES
+-----|-------|------------|----------|-----------------------------
+  A  |   0   | Comment_ID | String   | PK. UUID
+  B  |   1   | Reference  | String   | FK -> Orders.Reference
+  C  |   2   | Author     | String   | Admin | SYSTEM | BILLING
+  D  |   3   | Text       | String   | Comment content
+  E  |   4   | Timestamp  | ISO Date | When posted
+
+
+--- SHEET 5: Deleted (5 columns, header color: #dc3545 Red) ---
+
+ COL | INDEX | NAME       | TYPE     | NOTES
+-----|-------|------------|----------|-----------------------------
+  A  |   0   | Reference  | String   | From Orders.Reference
+  B  |   1   | Deleted_At | ISO Date | When cancelled
+  C  |   2   | Reason     | String   | Cancellation reason
+  D  |   3   | Deleted_By | String   | Who deleted it
+  E  |   4   | Snapshot   | JSON     | Full order row as JSON array
+
+
+--- SHEET 6: SystemLogs (5 columns, header color: #6366f1 Indigo) ---
+
+ COL | INDEX | NAME      | TYPE     | NOTES
+-----|-------|-----------|----------|-----------------------------
+  A  |   0   | Log_ID    | String   | PK. UUID
+  B  |   1   | Timestamp | ISO Date | When event occurred
+  C  |   2   | Action    | String   | EVENT_TYPE (see list below)
+  D  |   3   | User      | String   | Who triggered it
+  E  |   4   | Details   | String   | Human-readable description
+
+SYSTEM LOG ACTION TYPES:
+  ORDER_CREATED, ORDER_UPDATED, ORDER_DELETED, ORDER_RESTORED,
+  ORDER_PURGED, TRANSACTION_ADDED, TRANSACTION_UPDATED,
+  TRANSACTION_DELETED, INVENTORY_ADDED, INVENTORY_UPDATED,
+  EMAIL_SENT
+
+
+================================================================================
+ 5. SETUP.GS - ALL FUNCTIONS (3 functions)
+================================================================================
+
+FUNCTION: runSetup()
+  PURPOSE:  Main entry point. Creates/fixes all 6 sheets with correct
+            headers, formatting (colored header rows, frozen row 1,
+            auto-resized columns). Safe to run multiple times.
+  PARAMS:   None
+  RETURNS:  String "Setup complete. 6 sheets created and synced."
+  CALLS:    setupSheet() x6, DriveApp.getFolderById()
+
+FUNCTION: setupSheet(ss, name, headers, color)
+  PURPOSE:  Creates a sheet if missing, writes header row, applies
+            background color, white bold text, freezes row 1.
+  PARAMS:   ss (Spreadsheet), name (String), headers (Array), color (hex)
+  RETURNS:  Sheet object
+
+FUNCTION: testSetup()
+  PURPOSE:  Verification function. Logs each sheet name + column count.
+  PARAMS:   None
+  RETURNS:  void (output in Logger)
+
+
+================================================================================
+ 6. CODE.GS - ALL FUNCTIONS (38 functions)
+================================================================================
+
+--- ENTRY POINTS ---
+
+FUNCTION: doGet(e)
+  PURPOSE:  HTTP GET router. Serves HTML pages and JSON API endpoints.
+  PARAMS:   e (event object with e.parameter.action)
+  RETURNS:  HtmlOutput or TextOutput (JSON)
+  ROUTES:
+    Page Routes (returns HTML):
+      ?action=form|shop        -> Form.html (Storefront)
+      ?action=admin|orders     -> Submissions.html (Admin Dashboard)
+      ?action=inventory        -> Inventory.html
+      ?action=new-inventory    -> newInventory.html
+      ?action=transactions     -> Transactions.html
+      ?action=deleted          -> Deleted.html
+    API Routes (returns JSON):
+      ?action=get-inventory    -> getInventoryForStorefront()
+      ?action=get-orders       -> getAllOrders()
+      ?action=get-orders-with-comments -> getAllOrdersWithComments()
+      ?action=get-order&reference=X    -> getOrderByReference(X)
+      ?action=get-comments&reference=X -> getCommentsForOrder(X)
+      ?action=get-deleted      -> getDeletedOrders()
+      ?action=get-deleted-count -> getDeletedOrdersCount()
+      ?action=get-stats        -> getStats()
+      ?action=get-transactions&reference=X -> getTransactionsByReference(X)
+      ?action=get-all-transactions -> getAllTransactions()
+      ?action=get-inventory-item&id=X -> getInventoryItem(X)
+      ?action=get-system-logs  -> getSystemLogs()
+
+FUNCTION: doPost(e)
+  PURPOSE:  HTTP POST router. Handles all write operations.
+  PARAMS:   e (event object with postData.contents as JSON)
+  RETURNS:  TextOutput (JSON)
+  ROUTES:
+    action=submit-order        -> submitOrder(data)
+    action=update-field        -> updateOrderField(data)
+    action=send-email          -> sendCustomEmail(data)
+    action=send-confirmation   -> sendOrderConfirmation(data)
+    action=delete              -> moveToDeleted(data)
+    action=restore             -> restoreFromDeleted(data)
+    action=permanent-delete    -> permanentDelete(data)
+    action=add-transaction     -> addTransaction(data)
+    action=delete-transaction  -> deleteTransaction(data)
+    action=send-statement      -> sendStatementEmail(data)
+    action=add-comment         -> addCommentInternal(data)
+    action=add-inventory       -> addInventoryItem(data)
+    action=update-inventory    -> updateInventoryItem(data)
+
+FUNCTION: serve(file, title)
+  PURPOSE:  Wraps HtmlService.createHtmlOutputFromFile() with title and
+            XFrameOptionsMode.ALLOWALL for iframe embedding.
+  PARAMS:   file (String filename without .html), title (String)
+  RETURNS:  HtmlOutput
+
+FUNCTION: jsonResponse(data)
+  PURPOSE:  Wraps data in {success:true/false, ...data} JSON response.
+            Uses manual for-in loop (not spread) for Rhino compatibility.
+  PARAMS:   data (Object)
+  RETURNS:  TextOutput with MIME type JSON
+
+
+--- ORDER SUBMISSION ---
+
+FUNCTION: submitOrder(data)
+  PURPOSE:  Full checkout pipeline. Validates input, calculates totals,
+            appends order row, deducts stock, creates initial transaction,
+            adds system comment, logs event, sends email with PDF.
+  PARAMS:   data {email, name, surname, items[], paymentMethod, ...}
+  RETURNS:  {success, reference} or {error}
+  LOCKS:    ScriptLock (30s timeout)
+  SIDE EFFECTS:
+    - Appends row to Orders sheet (26 columns)
+    - Calls deductStock() to reduce Inventory
+    - Calls createInitialTransaction() to add CHARGE record
+    - Calls addCommentInternal() for system comment
+    - Calls logSystemEvent('ORDER_CREATED')
+    - Calls sendOrderAcknowledgement() for email + PDF
+
+FUNCTION: processCheckout(formData)
+  PURPOSE:  Wrapper for google.script.run calls from Form.html.
+            Calls submitOrder() and throws on error.
+  PARAMS:   formData (Object, same as submitOrder)
+  RETURNS:  {success, reference}
+
+
+--- INVENTORY MANAGEMENT ---
+
+FUNCTION: getInventoryForStorefront()
+  PURPOSE:  Returns all active, in-stock products for the public shop.
+            Filters out inactive/archived and stock <= 0.
+  PARAMS:   None
+  RETURNS:  {products: [{id, sku, name, desc, category, size, colour,
+            artist, original, price, stock, image, image2, image3,
+            video, dateListed, featured, tags}]}
+
+FUNCTION: getInventoryItem(id)
+  PURPOSE:  Returns a single product by Product_ID.
+  PARAMS:   id (String)
+  RETURNS:  {product: {...}} or {error}
+
+FUNCTION: addInventoryItem(data)
+  PURPOSE:  Adds a new product row (30 columns) to Inventory sheet.
+            Auto-generates Product_ID as "PROD-XXXXXXXX".
+  PARAMS:   data {name, sku, description, category, ...all 25 fields}
+  RETURNS:  {success, productId} or {error}
+  LOCKS:    ScriptLock
+
+FUNCTION: updateInventoryItem(data)
+  PURPOSE:  Updates a single field on an existing product.
+  PARAMS:   data {productId, field, value, updatedBy}
+  RETURNS:  {success} or {error}
+  FIELD MAP: name->col3, description->4, category->5, size->7,
+             colour->10, originalPrice->13, currentPrice->14,
+             costPrice->15, stock->16, image1->18, image2->19,
+             image3->20, video->21, status->24, featured->25, notes->30
+
+FUNCTION: deductStock(ss, items)
+  PURPOSE:  After checkout, reduces Stock column and increments
+            Total_Sold for each purchased product.
+  PARAMS:   ss (Spreadsheet), items (Array of cart items)
+  RETURNS:  void
+
+FUNCTION: rowToInventoryObject(r)
+  PURPOSE:  Converts a raw sheet row array to a named object.
+  PARAMS:   r (Array of 30 values)
+  RETURNS:  Object with all 30 fields named
+
+
+--- READ OPERATIONS (ORDERS) ---
+
+FUNCTION: getAllOrders()
+  PURPOSE:  Returns all orders from the Orders sheet.
+  RETURNS:  {orders: [Order objects]}
+
+FUNCTION: getAllOrdersWithComments()
+  PURPOSE:  Returns all orders enriched with comment counts and
+            transaction-based balance calculations.
+  RETURNS:  {orders: [Order objects with commentCount, balance]}
+
+FUNCTION: getOrderByReference(reference)
+  PURPOSE:  Returns a single order by reference, with comments attached.
+  PARAMS:   reference (String)
+  RETURNS:  Order object or null
+
+FUNCTION: rowToOrder(r)
+  PURPOSE:  Converts a raw Orders sheet row to a named object.
+  PARAMS:   r (Array of 26 values)
+  RETURNS:  Object with 26 named fields
+
+FUNCTION: getStats()
+  PURPOSE:  Calculates dashboard statistics from all orders.
+  RETURNS:  {total, new, processing, shipped, delivered, cancelled,
+            totalRevenue, paidRevenue}
+
+
+--- UPDATE OPERATIONS ---
+
+FUNCTION: updateOrderField(data)
+  PURPOSE:  Updates a single field on an existing order. Auto-adds
+            system comment for status/payment/tracking changes.
+  PARAMS:   data {reference, field, value, updatedBy}
+  RETURNS:  {success} or {error}
+  FIELD MAP: status->3, customerName->4, email->6, phone->7,
+             paymentStatus->20, paymentMethod->19, trackingNumber->24,
+             confirmationSent->23, notes->25
+
+
+--- COMMENTS ---
+
+FUNCTION: addCommentInternal(data)
+  PURPOSE:  Appends a comment row. Used internally by system events
+            and by admin via UI.
+  PARAMS:   data {reference, author, text}
+  RETURNS:  {success} or {error}
+
+FUNCTION: addComment(reference, text, author)
+  PURPOSE:  Wrapper for google.script.run from Submissions.html.
+  PARAMS:   reference, text, author (all Strings)
+  RETURNS:  {success}
+
+FUNCTION: getCommentsForOrder(reference)
+  PURPOSE:  Returns all comments for an order, newest first.
+  PARAMS:   reference (String)
+  RETURNS:  Array of {id, author, text, timestamp}
+
+
+--- DELETE / RESTORE ---
+
+FUNCTION: moveToDeleted(data)
+  PURPOSE:  Soft-deletes an order. Snapshots full row as JSON,
+            appends to Deleted sheet, removes from Orders sheet.
+  PARAMS:   data {reference, deleteReason, deletedBy}
+  RETURNS:  {success} or {error}
+
+FUNCTION: restoreFromDeleted(data)
+  PURPOSE:  Restores a deleted order. Parses JSON snapshot, sets
+            status to 'processing', appends back to Orders.
+  PARAMS:   data {reference, restoredBy}
+  RETURNS:  {success} or {error}
+
+FUNCTION: permanentDelete(data)
+  PURPOSE:  Permanently removes from Deleted sheet. No recovery.
+  PARAMS:   data {reference, deletedBy}
+  RETURNS:  {success} or {error}
+
+FUNCTION: getDeletedOrders()
+  PURPOSE:  Returns all soft-deleted orders with parsed snapshot data.
+  RETURNS:  {deleted: [{reference, deletedAt, deleteReason, deletedBy,
+            customerName, email, totalAmount, itemCount, snapshot}]}
+
+FUNCTION: getDeletedOrdersCount()
+  PURPOSE:  Returns just the count (for badge display).
+  RETURNS:  {deletedCount: Number}
+
+
+--- TRANSACTIONS / BILLING ---
+
+FUNCTION: addTransaction(data)
+  PURPOSE:  Adds a new transaction row. Auto-generates UUID and
+            ISO timestamp. Adds billing comment and system log.
+  PARAMS:   data {reference, date, description, amount, type, createdBy}
+  RETURNS:  {success, transactionId} or {error}
+  LOCKS:    ScriptLock
+  NOTE:     Positive amount = CHARGE (debit)
+            Negative amount = PAYMENT/REFUND (credit)
+
+FUNCTION: createInitialTransaction(ss, reference, totalAmount, itemCount)
+  PURPOSE:  Auto-called during checkout. Creates the first CHARGE
+            transaction for the order total.
+  PARAMS:   ss, reference, totalAmount, itemCount
+
+FUNCTION: deleteTransaction(data)
+  PURPOSE:  Permanently removes a transaction row from the sheet.
+  PARAMS:   data {transactionId, deletedBy}
+  RETURNS:  {success} or {error}
+
+FUNCTION: updateTransaction(data)
+  PURPOSE:  Updates description, amount, and type of an existing
+            transaction. Preserves original timestamp and reference.
+  PARAMS:   data {transactionId, description, amount, type, updatedBy}
+  RETURNS:  {success} or {error}
+  LOCKS:    ScriptLock
+
+FUNCTION: getTransactionsByReference(reference)
+  PURPOSE:  Returns all transactions for a specific order, sorted
+            by createdAt timestamp.
+  PARAMS:   reference (String)
+  RETURNS:  {transactions: [{id, reference, date, description, amount,
+            type, createdBy, createdAt}]}
+
+FUNCTION: getAllTransactions()
+  PURPOSE:  Returns every transaction across all orders.
+  RETURNS:  {transactions: [all transaction objects]}
+
+
+--- EMAIL SYSTEM ---
+
+FUNCTION: sendOrderAcknowledgement(data, reference, pricing)
+  PURPOSE:  Sends HTML confirmation email with order details, EFT
+            banking info (if applicable), and PDF attachment.
+  PARAMS:   data {email, name}, reference, pricing {items, subtotal, ...}
+  RETURNS:  Boolean (true=sent, false=failed)
+
+FUNCTION: sendOrderConfirmation(data)
+  PURPOSE:  Re-sends confirmation for existing order (admin action).
+            Also marks confirmationSent=true on the order.
+  PARAMS:   data {reference, email?}
+  RETURNS:  {success} or {error}
+
+FUNCTION: sendCustomEmail(data)
+  PURPOSE:  Sends a freeform email from admin to customer.
+  PARAMS:   data {to, subject, body, reference?}
+  RETURNS:  {success} or {error}
+
+FUNCTION: sendStatementEmail(data)
+  PURPOSE:  Generates and emails an HTML account statement table
+            showing all transactions and running balance.
+  PARAMS:   data {reference, email}
+  RETURNS:  {success} or {error}
+
+
+--- PDF GENERATION ---
+
+FUNCTION: generateOrderPDF(data, reference, pricing)
+  PURPOSE:  Creates a Google Doc with order details, converts to PDF
+            blob, then trashes the temporary doc.
+  PARAMS:   data, reference, pricing
+  RETURNS:  Blob (PDF) or throws error
+
+
+--- SYSTEM LOGGING ---
+
+FUNCTION: logSystemEvent(action, user, details)
+  PURPOSE:  Appends an audit log row to SystemLogs sheet.
+  PARAMS:   action (String), user (String), details (String)
+  RETURNS:  void
+
+FUNCTION: getSystemLogs()
+  PURPOSE:  Returns all system logs, newest first.
+  RETURNS:  {logs: [{id, timestamp, action, user, details}]}
+
+
+--- UTILITY HELPERS ---
+
+FUNCTION: generateReference(surname)
+  PURPOSE:  Generates order reference as YYMMDDSSSS###
+            (2-digit year + month + day + 4 uppercase surname chars
+            + 3 random digits)
+  PARAMS:   surname (String)
+  RETURNS:  String e.g. "260210SMIT042"
+
+FUNCTION: generateUUID()
+  PURPOSE:  Wrapper for Utilities.getUuid()
+  RETURNS:  String UUID
+
+FUNCTION: sanitize(str)
+  PURPOSE:  Removes < > characters from input strings.
+  PARAMS:   str (String)
+  RETURNS:  String (cleaned)
+
+FUNCTION: escapeHtml(str)
+  PURPOSE:  Escapes &, <, >, " for safe HTML rendering.
+  PARAMS:   str (String)
+  RETURNS:  String (escaped)
+
+FUNCTION: getOrCreateSheet(ss, name, headers)
+  PURPOSE:  Returns existing sheet by name, or creates it with
+            headers if it doesn't exist.
+  PARAMS:   ss, name, headers (Array)
+  RETURNS:  Sheet object
+
+
+================================================================================
+ 7. FORM.HTML - STOREFRONT (562 lines)
+================================================================================
+
+PURPOSE: Public-facing product catalog and shopping experience.
+
+FEATURES:
+  - Product grid (responsive: 2/3/5 columns)
+  - Auto-rotating images every 5 seconds (cycles image1/2/3)
+  - Dynamic stock badges (green/amber/red/grey based on quantity)
+  - Cart quantity shown on product cards ("X in your cart")
+  - Stock enforcement (can't add more than available)
+  - Fly-to-cart animation (image clone flies to cart icon)
+  - Shopping cart drawer with +/- quantity controls
+  - Free shipping progress bar ($50 threshold)
+  - PayPal SDK integration (sandbox mode by default)
+  - EFT bank transfer option with reference
+  - Dark/Light theme toggle
+  - Search input with real-time filtering
+  - Sort dropdown (7 options: price, date, size)
+  - Category sidebar with dynamic category buttons
+  - Wishlist (localStorage, heart icons)
+  - Countdown urgency banner ("FLASH SALE ENDS IN...")
+  - Expandable Social FAB (WhatsApp, Telegram, Facebook, etc.)
+  - Chatbot assistant with keyword-based responses
+  - Back-to-top button
+  - Admin dashboard link (floating action button)
+
+CLIENT-SIDE FUNCTIONS:
+  renderProducts(filter)     - Renders product grid with stock logic
+  sortProducts(list, type)   - Sorts by price/date/size
+  populateCategories()       - Builds category sidebar buttons
+  addToCart(id, card)        - Adds item with stock check + animation
+  removeFromCart(id)         - Removes item, re-renders stock
+  changeQty(id, delta)      - +/- with stock ceiling enforcement
+  updateCart()               - Recalculates totals, renders cart items
+  flyToCart(card)            - Clone image animation to cart icon
+  toggleWishlist(id)         - Add/remove from wishlist
+  renderWishlist()           - Updates wishlist sidebar
+  startImageRotation(card,p) - setInterval for image cycling
+  toggleCheckout()           - Shows/hides checkout form
+  renderPayPalButtons()      - Initializes PayPal SDK buttons
+  processEFT()              - Validates form, calls submitOrderToGAS
+  submitOrderToGAS(method,id)- Sends data via google.script.run
+  orderSuccess(ref, method)  - Post-checkout cleanup and alert
+  sendChat()                - Chatbot send handler
+  getChatReply(msg)          - Keyword-based reply generator
+  showToast()               - Success toast notification
+  showToastMsg(msg, bg)     - Custom message/color toast
+  escapeHtml(s)             - XSS prevention
+
+
+================================================================================
+ 8. SUBMISSIONS.HTML - ADMIN ORDERS DASHBOARD (774 lines)
+================================================================================
+
+PURPOSE: Admin interface for managing orders, transactions, and comms.
+
+FEATURES:
+  - Stats bar (Total, New, Processing, Shipped, Delivered, Revenue)
+  - Search across reference/name/email/status
+  - Filter buttons (All, New, Processing, Shipped, Delivered, Unpaid)
+  - Order cards with status badges, payment indicators, balance
+  - View Order modal with 6 sections:
+    1. Customer details
+    2. Status & Payment (inline dropdowns)
+    3. Items table
+    4. Financials summary
+    5. Transactions/Billing (full CRUD):
+       - Balance summary cards (Charges, Payments, Balance, Count)
+       - Ledger table with timestamp, description, debit, credit,
+         running balance, edit/delete buttons
+       - Inline edit mode (transforms row into input fields)
+       - Add transaction form (Description, Amount, Type)
+       - Auto-generated timestamp (no manual date input)
+       - Auto-recalculation of balance on every mutation
+       - Payment status auto-updates (paid when balance <= 0)
+    6. Comments & History (add/view comments)
+  - Email modal (send custom email to customer)
+  - Delete modal (soft-delete with reason)
+  - Deleted count badge in nav
+
+CLIENT-SIDE FUNCTIONS:
+  renderOrders()              - Renders filtered/searched order cards
+  updateStats()               - Calculates and displays stat cards
+  viewOrder(ref)              - Opens full order detail modal
+  loadComments(ref)           - Fetches comments from backend
+  renderComments(comments)    - Renders comment list
+  addComment(ref)             - Posts new comment
+  updateField(ref, field, val)- Updates order field (status, etc.)
+  sendConfirmation(ref)       - Re-sends confirmation email
+  openEmail(ref, email)       - Opens email modal
+  sendEmailAction()           - Sends custom email
+  openDelete(ref)             - Opens delete modal
+  confirmDelete()             - Executes soft-delete
+  loadTransactions(ref)       - Fetches transactions from backend
+  renderTransactions(ref)     - Renders ledger table with edit support
+  formatTimestamp(d)          - Formats ISO date to "DD Mon YYYY HH:MM:SS"
+  updateBalanceSummary(c,p,n) - Updates 4 balance cards + order list
+  addTransaction(ref)         - Adds new transaction with validation
+  startEditTransaction(id,ref)- Enters inline edit mode for a row
+  cancelEditTransaction(ref)  - Cancels edit mode
+  saveEditTransaction(id,i,r) - Saves edited transaction
+  deleteTransaction(id, ref)  - Deletes transaction with confirmation
+  closeModal(id)              - Closes any modal
+  formatDate(d)               - Formats ISO date for display
+  loadOrders()                - Initial data fetch
+  loadDeletedCount()          - Fetches deleted count for badge
+
+
+================================================================================
+ 9. INVENTORY.HTML - PRODUCT MANAGEMENT (251 lines)
+================================================================================
+
+PURPOSE: View and manage product catalog with stock controls.
+
+FEATURES:
+  - Responsive card grid (1/2/3 columns)
+  - Product cards with image, name, SKU, category, artist
+  - Price display (original strikethrough + sale price + discount %)
+  - Stock +/- buttons with instant UI update
+  - LOW STOCK / OUT OF STOCK badges
+  - Total products and Low Stock count pills
+  - Search by name, SKU, category, artist
+  - Edit modal with 9 editable fields
+  - Inline save that updates backend per-field
+
+CLIENT-SIDE FUNCTIONS:
+  renderInventory()          - Renders filtered product cards
+  adjustStock(id, delta)     - +/- stock with backend sync
+  openEdit(id)               - Opens edit modal with current values
+  saveEdit(id)               - Saves all fields, syncs to backend
+  closeEdit()                - Closes edit modal
+  loadInventory()            - Fetches products from backend
+
+
+================================================================================
+ 10. NEWINVENTORY.HTML - ADD NEW PRODUCT (198 lines)
+================================================================================
+
+PURPOSE: Full product creation form with 25 input fields.
+
+FORM SECTIONS:
+  1. Basic Information: Name*, SKU, Description, Category*, Sub-Category
+  2. Specifications: Size, Dimensions, Weight, Colour, Material, Artist
+  3. Pricing & Stock: Original Price*, Sale Price*, Cost Price,
+     Stock*, Min Stock, Shipping Class
+  4. Media: Image 1 URL*, Image 2 URL, Image 3 URL, Video URL
+  5. Additional: Tags, Country of Origin, Featured toggle, Notes
+
+POST-SUBMIT:
+  - Calls google.script.run.addInventoryItem(data)
+  - Shows success message with Product ID
+  - Links to "View Inventory" and "Add Another"
+
+
+================================================================================
+ 11. TRANSACTIONS.HTML - FINANCIAL LEDGER (355 lines)
+================================================================================
+
+PURPOSE: Full financial overview with 3 tabs.
+
+TAB 1 - GENERAL LEDGER:
+  - Summary cards (Total Charges, Total Payments, Outstanding, Count)
+  - Search by reference, description, type
+  - Full ledger table: Date, Reference, Description, Type badge,
+    Debit, Credit, Running Balance, Created By, Delete button
+  - Add Transaction modal (Reference, Date, Description, Amount, Type)
+
+TAB 2 - CLIENT ACCOUNTS:
+  - Groups transactions by order reference
+  - Shows per-client: Reference, Balance, Charges, Payments, Txn count
+  - "Email Statement" button per client
+
+TAB 3 - PROFIT & LOSS:
+  - Total Revenue, Total Payments Received, Outstanding Receivables
+  - VAT (15%), Revenue Excl. VAT, Refunds Issued
+
+CLIENT-SIDE FUNCTIONS:
+  renderLedger()            - Renders general ledger table
+  renderClientAccounts()    - Renders grouped client summaries
+  renderPnL()               - Calculates P&L figures
+  openAddTxn() / closeTxnModal() - Modal controls
+  submitTxn()               - Adds transaction via backend
+  deleteTxn(id)             - Deletes transaction
+  sendStatement(ref)        - Emails HTML statement
+  loadTransactions()        - Fetches all transactions
+
+
+================================================================================
+ 12. DELETED.HTML - SOFT-DELETE ARCHIVE (185 lines)
+================================================================================
+
+PURPOSE: View, restore, or permanently purge cancelled orders.
+
+FEATURES:
+  - Order count badge
+  - Search across reference, customer, email, reason
+  - Deleted order cards with:
+    - Red left border indicator
+    - Reference, deletion date, reason, deleted by
+    - Customer name, email, item count, total amount
+    - Restore button (moves back to Orders, status = processing)
+    - Permanently Delete button (irreversible, with confirmation)
+
+CLIENT-SIDE FUNCTIONS:
+  renderDeleted()            - Renders filtered deleted order cards
+  restoreOrder(ref)          - Calls restoreFromDeleted()
+  purgeOrder(ref)            - Calls permanentDelete()
+  loadDeleted()              - Fetches deleted orders
+
+
+================================================================================
+ 13. DATA FLOW DIAGRAMS
+================================================================================
+
+--- CHECKOUT FLOW ---
+
+  Customer fills cart -> Click Checkout -> Fill details ->
+    PayPal: PayPal SDK capture -> processCheckout() ->
+    EFT: processEFT() -> processCheckout() ->
+      submitOrder() ->
+        Validate inputs ->
+        Calculate: subtotal, savings, shipping, discount, total ->
+        Append to Orders (26 cols) ->
+        deductStock() -> Update Inventory (Stock--, Total_Sold++) ->
+        createInitialTransaction() -> Append to Transactions (CHARGE) ->
+        addCommentInternal() -> Append to Comments ->
+        logSystemEvent() -> Append to SystemLogs ->
+        sendOrderAcknowledgement() ->
+          Build HTML email with EFT details if applicable ->
+          generateOrderPDF() -> Create Doc, convert PDF, trash Doc ->
+          MailApp.sendEmail() with PDF attachment ->
+        Return {reference} to client ->
+        Client shows confirmation alert
+
+--- TRANSACTION BALANCE FLOW ---
+
+  Each transaction has a signed amount:
+    CHARGE:     +amount (debit, money owed)
+    PAYMENT:    -amount (credit, money received)
+    REFUND:     -amount (credit, money returned)
+    ADJUSTMENT: +/-amount (correction)
+
+  Running Balance = SUM(all amounts) for that reference
+  Balance Due = Total Charges - Total Payments
+
+  When balance <= 0.01 -> payment status auto-set to "paid"
+  When 0 < balance < totalAmount -> payment status = "partial"
+
+
+--- REFERENCE GENERATION ---
+
+  Format: YYMMDDSSSS###
+  Example: 260210SMIT042
+
+  YY = 2-digit year (26)
+  MM = 2-digit month (02)
+  DD = 2-digit day (10)
+  SSSS = First 4 chars of surname, uppercase, padded with X
+  ### = 3-digit random number (000-999)
+
+
+================================================================================
+ 14. API REFERENCE (doGet + doPost ROUTES)
+================================================================================
+
+--- GET ENDPOINTS (append to web app URL) ---
+
+URL Parameter                | Response
+-----------------------------|------------------------------------------
+?action=form                 | HTML: Storefront
+?action=shop                 | HTML: Storefront (alias)
+?action=admin                | HTML: Admin Dashboard
+?action=orders               | HTML: Admin Dashboard (alias)
+?action=inventory            | HTML: Inventory Manager
+?action=new-inventory        | HTML: Add Product Form
+?action=transactions         | HTML: Transactions Ledger
+?action=billing              | HTML: Transactions (alias)
+?action=deleted              | HTML: Deleted Orders
+?action=get-inventory        | JSON: {products:[...]}
+?action=get-orders           | JSON: {orders:[...]}
+?action=get-orders-with-comments | JSON: {orders:[...with balances]}
+?action=get-order&reference=X    | JSON: {order object}
+?action=get-comments&reference=X | JSON: {comments:[...]}
+?action=get-deleted          | JSON: {deleted:[...]}
+?action=get-deleted-count    | JSON: {deletedCount: N}
+?action=get-stats            | JSON: {total,new,processing,...}
+?action=get-transactions&reference=X | JSON: {transactions:[...]}
+?action=get-all-transactions | JSON: {transactions:[...]}
+?action=get-inventory-item&id=X | JSON: {product:{...}}
+?action=get-system-logs      | JSON: {logs:[...]}
+
+
+--- POST ENDPOINTS (send JSON body with "action" field) ---
+
+Action                | Required Fields
+----------------------|------------------------------------------
+submit-order          | email, name, items[], paymentMethod
+update-field          | reference, field, value
+send-email            | to, subject, body
+send-confirmation     | reference
+delete                | reference, deleteReason
+restore               | reference
+permanent-delete      | reference
+add-transaction       | reference, description, amount
+delete-transaction    | transactionId
+send-statement        | reference, email
+add-comment           | reference, text
+add-inventory         | name, category, originalPrice, currentPrice
+update-inventory      | productId, field, value
+
+
+================================================================================
+ 15. DEPLOYMENT GUIDE (STEP-BY-STEP)
+================================================================================
+
+STEP 1: CREATE GOOGLE SHEET
+  - Go to sheets.google.com
+  - Create a new blank spreadsheet
+  - Copy the Spreadsheet ID from the URL:
+    https://docs.google.com/spreadsheets/d/{THIS_IS_THE_ID}/edit
+
+STEP 2: CREATE GOOGLE DRIVE FOLDER
+  - Go to drive.google.com
+  - Create a folder for PDF invoices (e.g. "Maboneng Art Orders")
+  - Copy the Folder ID from the URL:
+    https://drive.google.com/drive/folders/{THIS_IS_THE_ID}
+
+STEP 3: OPEN APPS SCRIPT EDITOR
+  - In your spreadsheet: Extensions > Apps Script
+  - This opens the script editor at script.google.com
+
+STEP 4: ADD SETUP.GS
+  - Replace the default Code.gs content with Setup.gs
+  - Your Spreadsheet ID and Drive Folder ID are pre-filled:
+    SPREADSHEET_ID: '1NnsMcz3r6yGfzkXhI3SyF5RwMfKTR2USrxt89Qn5gfI'
+    DRIVE_FOLDER_ID: '1TfQhap8ZU0vbdyfLDcBh9vJFixo03JTZ'
+  - Select runSetup from the function dropdown
+  - Click Run
+  - Grant permissions when prompted
+  - Verify: 6 sheets created with colored headers
+
+STEP 5: ADD CODE.GS
+  - Create a new file: File > New > Script
+  - Name it "Code" (without .gs extension)
+  - Paste the entire Code.gs content
+  - IDs are pre-filled in the CONFIG object
+
+STEP 6: ADD HTML FILES (6 files)
+  - For each HTML file: File > New > HTML
+  - Name them EXACTLY (case-sensitive, without .html):
+    Form, Submissions, Inventory, newInventory, Transactions, Deleted
+  - Paste the corresponding HTML content into each
+
+STEP 7: DEPLOY AS WEB APP
+  - Click Deploy > New Deployment
+  - Select type: Web app
+  - Settings:
+    Execute as: Me
+    Who has access: Anyone (or Anyone with the link)
+  - Click Deploy
+  - Copy the Web App URL
+
+STEP 8: ACCESS YOUR APP
+  - Default (storefront): https://script.google.com/.../exec
+  - Admin dashboard: .../exec?action=admin
+  - Inventory: .../exec?action=inventory
+  - Add product: .../exec?action=new-inventory
+  - Transactions: .../exec?action=transactions
+  - Deleted: .../exec?action=deleted
+
+STEP 9: CONFIGURE PAYPAL (Optional)
+  - In Form.html, replace the PayPal client-id:
+    client-id=sb  (sandbox/test mode)
+  - For production, replace with your live PayPal client ID from
+    developer.paypal.com
+
+STEP 10: UPDATE BUSINESS DETAILS
+  - In Code.gs CONFIG object, update:
+    COMPANY_EMAIL, COMPANY_PHONE, COMPANY_ADDRESS,
+    BANK_NAME, BANK_ACCOUNT, BANK_BRANCH
+
+IMPORTANT: After editing files, you must create a NEW deployment
+(Deploy > Manage Deployments > New Version) for changes to go live.
+
+
+================================================================================
+ 16. SECURITY CONSIDERATIONS
+================================================================================
+
+  - All user inputs are sanitized via sanitize() (removes < >)
+  - HTML output is escaped via escapeHtml() (prevents XSS)
+  - Critical write operations use LockService.getScriptLock()
+    with 30-second timeout to prevent race conditions
+  - Google's built-in XSRF protection for google.script.run calls
+  - All mutations are logged to SystemLogs sheet (audit trail)
+  - Soft-delete preserves full data snapshot before removal
+  - PayPal client-side capture with server-side order verification
+  - No passwords stored (Google OAuth handles authentication)
+  - Admin pages accessible via URL parameter (add authentication
+    by checking Session.getActiveUser() in doGet if needed)
+
+RECOMMENDATION: For production, add this to the top of doGet():
+  var adminPages = ['admin','orders','inventory','new-inventory',
+                    'transactions','deleted'];
+  if (adminPages.indexOf(action) > -1) {
+    var user = Session.getActiveUser().getEmail();
+    if (user !== 'your-admin@gmail.com') {
+      return serve('Form', 'Access Denied');
+    }
+  }
+
+
+================================================================================
+ 17. TROUBLESHOOTING
+================================================================================
+
+ERROR: "Script function not found: doGet"
+  CAUSE: Code uses const/let/arrow functions which crash Rhino runtime
+  FIX: All code uses var, function(){}, and manual loops. If you
+       edited the code, ensure no ES6+ syntax was introduced.
+
+ERROR: "Authorization required"
+  FIX: Run any function once from the editor to trigger OAuth consent.
+       Grant all requested permissions (Sheets, Drive, Gmail, Docs).
+
+ERROR: "Script has exceeded maximum execution time"
+  CAUSE: Too many rows being processed (>50,000)
+  FIX: Archive old orders/transactions periodically.
+
+ERROR: Products not showing on storefront
+  CAUSE: Stock <= 0 OR Status = inactive/archived
+  FIX: Check Inventory sheet. Products need Stock > 0 and
+       Status = 'active' to appear.
+
+ERROR: Emails not sending
+  CAUSE: Gmail daily quota exceeded (100/day for free accounts)
+  FIX: Use Google Workspace account (1,500/day limit).
+
+ERROR: PDF generation fails
+  CAUSE: Missing Drive folder permissions
+  FIX: Ensure the Drive folder ID is correct and accessible.
+
+ERROR: PayPal buttons not rendering
+  CAUSE: Cart is empty or PayPal SDK not loaded
+  FIX: Ensure items are in cart. For production, update client-id
+       from 'sb' to your live PayPal client ID.
+
+REDEPLOYMENT:
+  After ANY code change, you MUST:
+  1. Deploy > Manage Deployments
+  2. Click pencil icon on your deployment
+  3. Change Version to "New Version"
+  4. Click Deploy
+  Otherwise your live app serves the OLD code.
+
+
+================================================================================
+ END OF DOCUMENTATION
+================================================================================
+ Total System: 8 files | 3,658 lines | 6 sheets | 79 columns |
+               38 backend functions | 41 frontend functions
+================================================================================

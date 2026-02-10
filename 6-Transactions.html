@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transactions - Maboneng Art</title>
+  <base target="_top">
+  <script src="https://unpkg.com/feather-icons"></script>
+  <style>
+    :root{--bg:#fafafa;--text:#18181b;--card:white;--border:#e4e4e7;--accent:#18181b;--gold:#c9a962;--danger:#ef4444;--success:#22c55e;--info:#3b82f6;--warning:#f59e0b;--purple:#a855f7;}
+    [data-theme="dark"]{--bg:#0a0a0a;--text:#fafafa;--card:#141414;--border:#262626;--accent:#fafafa;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);transition:0.3s;}
+
+    .admin-nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--card);border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;padding:0 16px;gap:8px;}
+    .nav-brand{font-weight:800;font-size:18px;color:var(--gold);margin-right:16px;white-space:nowrap;}
+    .nav-links{display:flex;gap:4px;overflow-x:auto;flex:1;}
+    .nav-link{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text);text-decoration:none;white-space:nowrap;transition:0.2s;border:1px solid transparent;}
+    .nav-link:hover{background:rgba(201,169,98,0.1);border-color:var(--gold);}
+    .nav-link.active{background:var(--gold);color:#000;}
+    .nav-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+    .theme-btn{background:none;border:none;color:var(--text);cursor:pointer;padding:8px;}
+
+    .tabs{display:flex;gap:4px;padding:72px 16px 12px;overflow-x:auto;}
+    .tab{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;white-space:nowrap;transition:0.2s;}
+    .tab.active{background:var(--gold);color:#000;border-color:var(--gold);}
+    .tab .tab-count{font-size:11px;background:rgba(0,0,0,0.15);padding:2px 8px;border-radius:10px;margin-left:6px;}
+
+    .summary-bar{display:flex;gap:12px;padding:12px 16px;overflow-x:auto;}
+    .summary-card{flex:0 0 auto;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;min-width:160px;transition:0.2s;}
+    .summary-card:hover{border-color:var(--gold);}
+    .summary-value{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;}
+    .summary-label{font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-top:4px;}
+
+    .controls{display:flex;gap:10px;padding:8px 16px;flex-wrap:wrap;align-items:center;}
+    .search-input{flex:1;min-width:180px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;outline:none;}
+    .search-input:focus{border-color:var(--gold);}
+    .ctrl-select{padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;outline:none;}
+    .ctrl-select:focus{border-color:var(--gold);}
+    .add-btn{padding:10px 20px;background:var(--gold);color:#000;border:none;border-radius:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:13px;}
+    .add-btn:hover{opacity:0.9;}
+    .add-btn:disabled{opacity:0.4;cursor:not-allowed;}
+    .filter-chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;transition:0.2s;white-space:nowrap;}
+    .filter-chip.active{border-color:var(--gold);background:var(--gold);color:#000;}
+    .filter-chip .chip-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}
+
+    .table-wrapper{padding:8px 16px 0;overflow-x:auto;}
+    .ledger-table{width:100%;border-collapse:collapse;min-width:700px;}
+    .ledger-table th{padding:12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);border-bottom:2px solid var(--border);position:sticky;top:0;background:var(--bg);cursor:pointer;user-select:none;white-space:nowrap;}
+    .ledger-table th:hover{color:var(--text);}
+    .ledger-table th .sort-icon{font-size:10px;margin-left:4px;opacity:0.4;}
+    .ledger-table th.sorted .sort-icon{opacity:1;color:var(--gold);}
+    .ledger-table td{padding:12px;font-size:14px;border-bottom:1px solid var(--border);}
+    .ledger-table tr:hover{background:rgba(201,169,98,0.05);}
+    .debit{color:var(--danger);font-weight:700;}
+    .credit{color:var(--success);font-weight:700;}
+    .type-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700;}
+    .type-CHARGE{background:rgba(239,68,68,0.1);color:var(--danger);}
+    .type-PAYMENT{background:rgba(34,197,94,0.1);color:var(--success);}
+    .type-REFUND{background:rgba(168,85,247,0.1);color:var(--purple);}
+    .type-ADJUSTMENT{background:rgba(245,158,11,0.1);color:var(--warning);}
+    .delete-txn{background:none;border:none;color:var(--danger);cursor:pointer;opacity:0.5;transition:0.2s;}
+    .delete-txn:hover{opacity:1;}
+
+    /* Pagination */
+    .pagination{display:flex;align-items:center;justify-content:center;gap:6px;padding:16px;flex-wrap:wrap;}
+    .page-btn{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:0.2s;}
+    .page-btn:hover:not(:disabled){border-color:var(--gold);background:rgba(201,169,98,0.1);}
+    .page-btn.active{background:var(--gold);color:#000;border-color:var(--gold);}
+    .page-btn:disabled{opacity:0.3;cursor:not-allowed;}
+    .page-info{font-size:12px;color:var(--text);opacity:0.6;margin:0 8px;}
+    .page-size-select{padding:6px 10px;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;}
+
+    /* Client Account Cards */
+    .client-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;transition:0.2s;}
+    .client-card:hover{border-color:var(--gold);box-shadow:0 4px 20px rgba(201,169,98,0.1);}
+    .client-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+    .client-ref{font-size:18px;font-weight:800;color:var(--gold);}
+    .client-balance{font-size:20px;font-weight:800;}
+    .client-meta{display:flex;gap:20px;font-size:13px;flex-wrap:wrap;}
+    .client-actions{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap;}
+    .client-btn{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;transition:0.2s;display:flex;align-items:center;gap:4px;}
+    .client-btn:hover{border-color:var(--gold);background:rgba(201,169,98,0.1);}
+    .client-btn.primary{background:var(--gold);color:#000;border-color:var(--gold);}
+    .client-btn.danger{border-color:var(--danger);color:var(--danger);}
+    .client-btn.danger:hover{background:rgba(239,68,68,0.1);}
+    .status-chip{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+    .status-owing{background:rgba(239,68,68,0.12);color:var(--danger);}
+    .status-settled{background:rgba(34,197,94,0.12);color:var(--success);}
+    .status-refundable{background:rgba(168,85,247,0.12);color:var(--purple);}
+
+    /* Modals */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:none;justify-content:center;align-items:center;padding:20px;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:var(--card);border:1px solid var(--border);border-radius:16px;max-width:600px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+    .modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--card);z-index:5;border-radius:16px 16px 0 0;}
+    .modal-header h2{font-size:18px;font-weight:800;color:var(--gold);}
+    .modal-close{background:none;border:none;color:var(--text);font-size:24px;cursor:pointer;}
+    .modal-body{padding:24px;}
+    .form-field{margin-bottom:14px;}
+    .form-field label{display:block;font-size:12px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+    .form-field input,.form-field select,.form-field textarea{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;}
+    .form-field textarea{min-height:100px;resize:vertical;font-family:inherit;}
+    .form-submit{width:100%;padding:14px;background:var(--gold);color:#000;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px;transition:0.2s;}
+    .form-submit:hover{opacity:0.9;}
+    .form-submit:disabled{opacity:0.4;cursor:not-allowed;}
+
+    .pnl-section{padding:16px;}
+    .pnl-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));}
+    .pnl-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;transition:0.2s;}
+    .pnl-card:hover{border-color:var(--gold);}
+    .pnl-card h4{font-size:12px;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+    .pnl-card .value{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;}
+
+    .loading{text-align:center;padding:80px 20px;font-size:16px;}
+    .empty-state{text-align:center;padding:60px 20px;opacity:0.5;}
+    .toast{position:fixed;bottom:20px;right:20px;background:var(--gold);color:#000;padding:14px 24px;border-radius:12px;font-weight:700;z-index:300;transform:translateY(100px);opacity:0;transition:0.3s;}
+    .toast.show{transform:translateY(0);opacity:1;}
+  </style>
+</head>
+<body>
+
+  <nav class="admin-nav">
+    <span class="nav-brand">Maboneng Art</span>
+    <div class="nav-links">
+      <a href="?action=shop" class="nav-link">Shop</a>
+      <a href="?action=admin" class="nav-link">Orders</a>
+      <a href="?action=inventory" class="nav-link">Inventory</a>
+      <a href="?action=new-inventory" class="nav-link">+ New</a>
+      <a href="?action=transactions" class="nav-link active">Transactions</a>
+      <a href="?action=deleted" class="nav-link">Deleted</a>
+    </div>
+    <div class="nav-right"><button class="theme-btn" id="themeToggle"><i data-feather="moon"></i></button></div>
+  </nav>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="ledger">General Ledger</button>
+    <button class="tab" data-tab="client">Client Accounts</button>
+    <button class="tab" data-tab="pnl">Profit & Loss</button>
+  </div>
+
+  <!-- GENERAL LEDGER TAB -->
+  <div id="tab-ledger">
+    <div class="summary-bar" id="summaryBar">
+      <div class="summary-card"><div class="summary-value" id="sumCharges" style="color:var(--danger)">$0</div><div class="summary-label">Total Charges</div></div>
+      <div class="summary-card"><div class="summary-value" id="sumPayments" style="color:var(--success)">$0</div><div class="summary-label">Total Payments</div></div>
+      <div class="summary-card"><div class="summary-value" id="sumBalance" style="color:var(--gold)">$0</div><div class="summary-label">Outstanding</div></div>
+      <div class="summary-card"><div class="summary-value" id="sumCount">0</div><div class="summary-label">Transactions</div></div>
+      <div class="summary-card"><div class="summary-value" id="sumOwing" style="color:var(--danger)">0</div><div class="summary-label">Owing Accounts</div></div>
+    </div>
+
+    <div class="controls">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search by reference, description, type...">
+      <select class="ctrl-select" id="sortSelect">
+        <option value="date-desc">Recent First</option>
+        <option value="date-asc">Oldest First</option>
+        <option value="amount-desc">Amount (High-Low)</option>
+        <option value="amount-asc">Amount (Low-High)</option>
+        <option value="ref-asc">Reference A-Z</option>
+      </select>
+      <select class="ctrl-select" id="typeFilter">
+        <option value="all">All Types</option>
+        <option value="CHARGE">Charges Only</option>
+        <option value="PAYMENT">Payments Only</option>
+        <option value="REFUND">Refunds Only</option>
+        <option value="ADJUSTMENT">Adjustments Only</option>
+      </select>
+      <button class="add-btn" onclick="openAddTxn()"><i data-feather="plus" style="width:16px;height:16px;"></i> Add Transaction</button>
+    </div>
+
+    <div class="loading" id="loadingState">Loading transactions...</div>
+    <div class="table-wrapper" id="tableWrapper" style="display:none;">
+      <table class="ledger-table">
+        <thead><tr>
+          <th onclick="toggleSort('date')">Date <span class="sort-icon">&#9650;</span></th>
+          <th onclick="toggleSort('reference')">Reference <span class="sort-icon">&#9650;</span></th>
+          <th>Description</th>
+          <th>Type</th>
+          <th onclick="toggleSort('debit')">Debit <span class="sort-icon">&#9650;</span></th>
+          <th onclick="toggleSort('credit')">Credit <span class="sort-icon">&#9650;</span></th>
+          <th>Balance</th>
+          <th>By</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="ledgerBody"></tbody>
+      </table>
+    </div>
+    <div id="paginationContainer" style="display:none;"></div>
+    <div class="empty-state" id="emptyState" style="display:none;"><p>No transactions found</p></div>
+  </div>
+
+  <!-- CLIENT ACCOUNTS TAB -->
+  <div id="tab-client" style="display:none;padding:16px;">
+    <div class="controls" style="padding:0 0 12px;">
+      <input type="text" class="search-input" id="clientSearch" placeholder="Search client by reference...">
+      <select class="ctrl-select" id="clientFilter">
+        <option value="all">All Accounts</option>
+        <option value="owing">Owing (Balance > 0)</option>
+        <option value="settled">Settled (Balance = 0)</option>
+        <option value="refundable">We Owe / Refundable (Balance &lt; 0)</option>
+      </select>
+      <select class="ctrl-select" id="clientSort">
+        <option value="balance-desc">Balance (High-Low)</option>
+        <option value="balance-asc">Balance (Low-High)</option>
+        <option value="recent">Most Recent Transaction</option>
+        <option value="ref-asc">Reference A-Z</option>
+        <option value="txn-count">Most Transactions</option>
+      </select>
+      <button class="add-btn" id="bulkDebtBtn" onclick="openBulkDebtModal()" style="background:var(--danger);"><i data-feather="alert-circle" style="width:16px;height:16px;"></i> Send Debt Reminders</button>
+    </div>
+    <div id="clientStatsBar" style="display:flex;gap:12px;margin-bottom:16px;overflow-x:auto;"></div>
+    <div id="clientGrid" style="display:grid;gap:12px;"></div>
+    <div id="clientPagination" style="display:none;"></div>
+  </div>
+
+  <!-- P&L TAB -->
+  <div id="tab-pnl" style="display:none;">
+    <div class="pnl-section">
+      <h2 style="font-size:24px;font-weight:800;margin-bottom:20px;">Profit & Loss Summary</h2>
+      <div class="pnl-grid">
+        <div class="pnl-card"><h4>Total Revenue</h4><div class="value" id="pnlRevenue" style="color:var(--success)">$0</div></div>
+        <div class="pnl-card"><h4>Total Payments Received</h4><div class="value" id="pnlPayments" style="color:var(--success)">$0</div></div>
+        <div class="pnl-card"><h4>Outstanding Receivables</h4><div class="value" id="pnlOutstanding" style="color:var(--warning)">$0</div></div>
+        <div class="pnl-card"><h4>VAT (15%)</h4><div class="value" id="pnlVAT" style="color:var(--info)">$0</div></div>
+        <div class="pnl-card"><h4>Revenue Excl. VAT</h4><div class="value" id="pnlExVAT">$0</div></div>
+        <div class="pnl-card"><h4>Refunds Issued</h4><div class="value" id="pnlRefunds" style="color:var(--danger)">$0</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Transaction Modal -->
+  <div class="modal-overlay" id="addTxnModal">
+    <div class="modal">
+      <div class="modal-header"><h2>Add Transaction</h2><button class="modal-close" onclick="closeTxnModal()">X</button></div>
+      <div class="modal-body">
+        <div class="form-field"><label>Order Reference *</label><input type="text" id="txn_ref" placeholder="e.g. 2602SMITH002"></div>
+        <div class="form-field"><label>Description *</label><input type="text" id="txn_desc" placeholder="e.g. PayPal Payment"></div>
+        <div class="form-field"><label>Amount ($) *</label><input type="number" id="txn_amount" step="0.01" min="0.01" placeholder="Enter positive amount"></div>
+        <div class="form-field"><label>Type</label><select id="txn_type"><option value="CHARGE">Charge (Debit)</option><option value="PAYMENT">Payment (Credit)</option><option value="REFUND">Refund</option><option value="ADJUSTMENT">Adjustment</option></select></div>
+        <button class="form-submit" id="txnSubmitBtn" onclick="submitTxn()">Add Transaction</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Debt Reminder Modal -->
+  <div class="modal-overlay" id="debtModal">
+    <div class="modal" style="max-width:650px;">
+      <div class="modal-header"><h2 style="color:var(--danger)">Debt Collection - Send Reminders</h2><button class="modal-close" onclick="closeDebtModal()">X</button></div>
+      <div class="modal-body">
+        <p style="margin-bottom:16px;opacity:0.7;">This will send personalised emails to ALL owing clients with their name, balance, and full transaction statement. You can customise the message below.</p>
+        <div class="form-field"><label>Subject Line</label><input type="text" id="debtSubject" value="Friendly Reminder: Outstanding Balance on Your Account"></div>
+        <div class="form-field"><label>Message (use {name}, {balance}, {reference} as placeholders)</label><textarea id="debtMessage">Dear {name},
+
+We hope this message finds you well.
+
+This is a friendly reminder that your account ({reference}) currently has an outstanding balance of {balance}.
+
+Please find your detailed account statement below. We kindly request that you settle your account at your earliest convenience.
+
+If you have already made payment, please disregard this notice. Should you have any questions, feel free to reach out.
+
+Thank you for your continued support.</textarea></div>
+        <div id="debtPreview" style="margin-bottom:16px;padding:14px;background:rgba(239,68,68,0.05);border-radius:10px;border:1px solid rgba(239,68,68,0.2);font-size:13px;"></div>
+        <button class="form-submit" id="debtSendBtn" style="background:var(--danger);color:white;" onclick="sendBulkDebtReminders()">Send to All Owing Clients</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Individual Statement Modal -->
+  <div class="modal-overlay" id="statementModal">
+    <div class="modal" style="max-width:500px;">
+      <div class="modal-header"><h2>Send Statement</h2><button class="modal-close" onclick="closeStatementModal()">X</button></div>
+      <div class="modal-body">
+        <div class="form-field"><label>Reference</label><input type="text" id="stmt_ref" readonly></div>
+        <div class="form-field"><label>Recipient Email *</label><input type="email" id="stmt_email" placeholder="client@email.com"></div>
+        <button class="form-submit" id="stmtSendBtn" onclick="sendStatementAction()">Send Statement</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  feather.replace();
+  var transactions = [], currentTab = 'ledger';
+  var ledgerPage = 1, ledgerPageSize = 25;
+  var clientPage = 1, clientPageSize = 20;
+  var sortField = 'date', sortDir = 'desc';
+
+  document.getElementById('themeToggle').onclick = function(){
+    var d = document.documentElement.getAttribute('data-theme')==='dark';
+    document.documentElement.setAttribute('data-theme', d?'light':'dark');
+  };
+
+  // Tab switching
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.onclick = function(){
+      document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active');});
+      t.classList.add('active');
+      currentTab = t.dataset.tab;
+      document.getElementById('tab-ledger').style.display = currentTab==='ledger'?'block':'none';
+      document.getElementById('tab-client').style.display = currentTab==='client'?'block':'none';
+      document.getElementById('tab-pnl').style.display = currentTab==='pnl'?'block':'none';
+      if(currentTab==='client') renderClientAccounts();
+      if(currentTab==='pnl') renderPnL();
+    };
+  });
+
+  document.getElementById('searchInput').addEventListener('input', function(){ ledgerPage=1; renderLedger(); });
+  document.getElementById('sortSelect').addEventListener('change', function(){ ledgerPage=1; renderLedger(); });
+  document.getElementById('typeFilter').addEventListener('change', function(){ ledgerPage=1; renderLedger(); });
+  document.getElementById('clientSearch').addEventListener('input', function(){ clientPage=1; renderClientAccounts(); });
+  document.getElementById('clientFilter').addEventListener('change', function(){ clientPage=1; renderClientAccounts(); });
+  document.getElementById('clientSort').addEventListener('change', function(){ clientPage=1; renderClientAccounts(); });
+
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function showToast(msg, bg){ var t=document.getElementById('toast'); t.textContent=msg; t.style.background=bg||'var(--gold)'; t.style.color=bg==='var(--danger)'?'white':'#000'; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},3000); }
+
+  function toggleSort(field){
+    if(sortField===field) sortDir = sortDir==='asc'?'desc':'asc';
+    else { sortField=field; sortDir='desc'; }
+    ledgerPage=1;
+    renderLedger();
+  }
+
+  function getFilteredSorted(){
+    var search = document.getElementById('searchInput').value.toLowerCase();
+    var typeF = document.getElementById('typeFilter').value;
+    var sort = document.getElementById('sortSelect').value;
+
+    var filtered = transactions.filter(function(t){
+      if(typeF !== 'all' && t.type !== typeF) return false;
+      if(!search) return true;
+      return (t.reference+' '+t.description+' '+t.type+' '+t.createdBy).toLowerCase().indexOf(search) > -1;
+    });
+
+    // Sort
+    filtered.sort(function(a,b){
+      if(sort==='date-desc') return new Date(b.createdAt||b.date) - new Date(a.createdAt||a.date);
+      if(sort==='date-asc') return new Date(a.createdAt||a.date) - new Date(b.createdAt||b.date);
+      if(sort==='amount-desc') return Math.abs(b.amount) - Math.abs(a.amount);
+      if(sort==='amount-asc') return Math.abs(a.amount) - Math.abs(b.amount);
+      if(sort==='ref-asc') return (a.reference||'').localeCompare(b.reference||'');
+      return 0;
+    });
+
+    return filtered;
+  }
+
+  function renderLedger(){
+    var filtered = getFilteredSorted();
+    var body = document.getElementById('ledgerBody');
+    var wrapper = document.getElementById('tableWrapper');
+    var empty = document.getElementById('emptyState');
+    var pagContainer = document.getElementById('paginationContainer');
+
+    if(filtered.length===0){ wrapper.style.display='none'; pagContainer.style.display='none'; empty.style.display='block'; updateSummary(); return; }
+    empty.style.display='none'; wrapper.style.display='block'; pagContainer.style.display='block';
+
+    // Pagination
+    var totalPages = Math.ceil(filtered.length / ledgerPageSize);
+    if(ledgerPage > totalPages) ledgerPage = totalPages;
+    var start = (ledgerPage-1)*ledgerPageSize;
+    var pageItems = filtered.slice(start, start+ledgerPageSize);
+
+    var runningBalance = 0;
+    // Calculate running balance from beginning
+    for(var i=0; i<start; i++) runningBalance += filtered[i].amount;
+
+    body.innerHTML = pageItems.map(function(t){
+      runningBalance += t.amount;
+      var ts = t.createdAt ? formatTimestamp(t.createdAt) : esc(t.date);
+      return '<tr>'
+        +'<td style="white-space:nowrap;font-size:12px;">'+ts+'</td>'
+        +'<td><strong style="color:var(--gold)">'+esc(t.reference)+'</strong></td>'
+        +'<td>'+esc(t.description)+'</td>'
+        +'<td><span class="type-badge type-'+esc(t.type)+'">'+esc(t.type)+'</span></td>'
+        +'<td class="debit">'+(t.amount >= 0 ? '$'+t.amount.toFixed(2) : '')+'</td>'
+        +'<td class="credit">'+(t.amount < 0 ? '$'+Math.abs(t.amount).toFixed(2) : '')+'</td>'
+        +'<td style="font-weight:700;font-variant-numeric:tabular-nums;color:'+(runningBalance>0.01?'var(--danger)':'var(--success)')+'">$'+runningBalance.toFixed(2)+'</td>'
+        +'<td style="font-size:12px;opacity:0.6">'+esc(t.createdBy)+'</td>'
+        +'<td><button class="delete-txn" onclick="deleteTxn(\''+esc(t.id)+'\')"><i data-feather="trash-2" style="width:14px;height:14px;"></i></button></td>'
+        +'</tr>';
+    }).join('');
+    feather.replace();
+
+    // Render pagination
+    renderPagination(pagContainer, ledgerPage, totalPages, filtered.length, ledgerPageSize, function(p){ ledgerPage=p; renderLedger(); });
+    updateSummary();
+  }
+
+  function renderPagination(container, currentP, totalP, totalItems, pageSize, onPageChange){
+    var start = (currentP-1)*pageSize+1;
+    var end = Math.min(currentP*pageSize, totalItems);
+    var html = '<div class="pagination">';
+    html += '<button class="page-btn" '+(currentP<=1?'disabled':'')+'onclick="void(0)" data-page="1" title="First">&laquo;</button>';
+    html += '<button class="page-btn" '+(currentP<=1?'disabled':'')+'onclick="void(0)" data-page="'+(currentP-1)+'" title="Previous">&lsaquo;</button>';
+
+    var startP = Math.max(1, currentP-2);
+    var endP = Math.min(totalP, currentP+2);
+    for(var i=startP; i<=endP; i++){
+      html += '<button class="page-btn'+(i===currentP?' active':'')+'" onclick="void(0)" data-page="'+i+'">'+i+'</button>';
+    }
+
+    html += '<button class="page-btn" '+(currentP>=totalP?'disabled':'')+'onclick="void(0)" data-page="'+(currentP+1)+'" title="Next">&rsaquo;</button>';
+    html += '<button class="page-btn" '+(currentP>=totalP?'disabled':'')+'onclick="void(0)" data-page="'+totalP+'" title="Last">&raquo;</button>';
+    html += '<span class="page-info">'+start+'-'+end+' of '+totalItems+'</span>';
+    html += '<select class="page-size-select" data-action="pagesize">';
+    [10,25,50,100].forEach(function(s){ html+='<option value="'+s+'"'+(s===pageSize?' selected':'')+'>'+s+'/page</option>'; });
+    html += '</select>';
+    html += '</div>';
+    container.innerHTML = html;
+
+    container.querySelectorAll('.page-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var p = parseInt(this.getAttribute('data-page'));
+        if(!isNaN(p) && p >= 1 && p <= totalP) onPageChange(p);
+      });
+    });
+    container.querySelector('[data-action="pagesize"]').addEventListener('change', function(){
+      if(container === document.getElementById('paginationContainer')){
+        ledgerPageSize = parseInt(this.value); ledgerPage = 1; renderLedger();
+      } else {
+        clientPageSize = parseInt(this.value); clientPage = 1; renderClientAccounts();
+      }
+    });
+  }
+
+  function updateSummary(){
+    var charges=0, payments=0, owingCount=0;
+    var refMap = {};
+    transactions.forEach(function(t){
+      if(t.amount>=0) charges+=t.amount; else payments+=Math.abs(t.amount);
+      if(!refMap[t.reference]) refMap[t.reference] = 0;
+      refMap[t.reference] += t.amount;
+    });
+    for(var r in refMap){ if(refMap[r] > 0.01) owingCount++; }
+    document.getElementById('sumCharges').textContent = '$'+charges.toFixed(2);
+    document.getElementById('sumPayments').textContent = '$'+payments.toFixed(2);
+    document.getElementById('sumBalance').textContent = '$'+(charges-payments).toFixed(2);
+    document.getElementById('sumCount').textContent = transactions.length;
+    document.getElementById('sumOwing').textContent = owingCount;
+  }
+
+  // ===== CLIENT ACCOUNTS =====
+  function buildClientMap(){
+    var refMap = {};
+    transactions.forEach(function(t){
+      if(!refMap[t.reference]) refMap[t.reference] = {ref:t.reference, charges:0, payments:0, refunds:0, txns:[], lastDate:''};
+      if(t.type==='REFUND') refMap[t.reference].refunds += Math.abs(t.amount);
+      if(t.amount>=0) refMap[t.reference].charges += t.amount;
+      else refMap[t.reference].payments += Math.abs(t.amount);
+      refMap[t.reference].txns.push(t);
+      var d = t.createdAt || t.date || '';
+      if(d > refMap[t.reference].lastDate) refMap[t.reference].lastDate = d;
+    });
+    return refMap;
+  }
+
+  function renderClientAccounts(){
+    var search = document.getElementById('clientSearch').value.toLowerCase();
+    var filter = document.getElementById('clientFilter').value;
+    var sortBy = document.getElementById('clientSort').value;
+    var refMap = buildClientMap();
+
+    var clients = [];
+    for(var key in refMap){ if(refMap.hasOwnProperty(key)) clients.push(refMap[key]); }
+
+    // Filter
+    clients = clients.filter(function(c){
+      var balance = c.charges - c.payments;
+      if(filter==='owing' && balance <= 0.01) return false;
+      if(filter==='settled' && (balance > 0.01 || balance < -0.01)) return false;
+      if(filter==='refundable' && balance >= -0.01) return false;
+      if(search && c.ref.toLowerCase().indexOf(search) === -1) return false;
+      return true;
+    });
+
+    // Sort
+    clients.sort(function(a,b){
+      var balA = a.charges-a.payments, balB = b.charges-b.payments;
+      if(sortBy==='balance-desc') return balB - balA;
+      if(sortBy==='balance-asc') return balA - balB;
+      if(sortBy==='recent') return new Date(b.lastDate||0) - new Date(a.lastDate||0);
+      if(sortBy==='ref-asc') return a.ref.localeCompare(b.ref);
+      if(sortBy==='txn-count') return b.txns.length - a.txns.length;
+      return 0;
+    });
+
+    // Client stats
+    var allClients = [];
+    for(var k in refMap){ if(refMap.hasOwnProperty(k)) allClients.push(refMap[k]); }
+    var owingN=0, settledN=0, refundN=0, totalOwed=0, totalOverpaid=0;
+    allClients.forEach(function(c){
+      var b = c.charges-c.payments;
+      if(b>0.01){owingN++; totalOwed+=b;}
+      else if(b<-0.01){refundN++; totalOverpaid+=Math.abs(b);}
+      else settledN++;
+    });
+    document.getElementById('clientStatsBar').innerHTML =
+      '<div class="summary-card"><div class="summary-value" style="color:var(--danger)">'+owingN+'</div><div class="summary-label">Owing</div></div>'
+      +'<div class="summary-card"><div class="summary-value" style="color:var(--success)">'+settledN+'</div><div class="summary-label">Settled</div></div>'
+      +'<div class="summary-card"><div class="summary-value" style="color:var(--purple)">'+refundN+'</div><div class="summary-label">We Owe</div></div>'
+      +'<div class="summary-card"><div class="summary-value" style="color:var(--danger)">$'+totalOwed.toFixed(2)+'</div><div class="summary-label">Total Owed to Us</div></div>'
+      +'<div class="summary-card"><div class="summary-value" style="color:var(--purple)">$'+totalOverpaid.toFixed(2)+'</div><div class="summary-label">Total We Owe</div></div>';
+
+    // Pagination
+    var totalPages = Math.ceil(clients.length / clientPageSize) || 1;
+    if(clientPage > totalPages) clientPage = totalPages;
+    var start = (clientPage-1)*clientPageSize;
+    var pageClients = clients.slice(start, start+clientPageSize);
+
+    var grid = document.getElementById('clientGrid');
+    if(pageClients.length===0){ grid.innerHTML='<div class="empty-state"><p>No accounts match the current filter.</p></div>'; }
+    else {
+      grid.innerHTML = pageClients.map(function(c){
+        var balance = c.charges - c.payments;
+        var statusClass = balance>0.01?'status-owing':balance<-0.01?'status-refundable':'status-settled';
+        var statusText = balance>0.01?'OWING':balance<-0.01?'OVERPAID / REFUNDABLE':'SETTLED';
+        return '<div class="client-card">'
+          +'<div class="client-header">'
+          +'<div><span class="client-ref">'+esc(c.ref)+'</span> <span class="status-chip '+statusClass+'">'+statusText+'</span></div>'
+          +'<div class="client-balance" style="color:'+(balance>0.01?'var(--danger)':balance<-0.01?'var(--purple)':'var(--success)')+'">$'+balance.toFixed(2)+'</div>'
+          +'</div>'
+          +'<div class="client-meta">'
+          +'<span>Charges: <strong class="debit">$'+c.charges.toFixed(2)+'</strong></span>'
+          +'<span>Payments: <strong class="credit">$'+c.payments.toFixed(2)+'</strong></span>'
+          +(c.refunds>0?'<span>Refunds: <strong style="color:var(--purple)">$'+c.refunds.toFixed(2)+'</strong></span>':'')
+          +'<span>Txns: <strong>'+c.txns.length+'</strong></span>'
+          +(c.lastDate?'<span>Last: <strong>'+formatTimestamp(c.lastDate)+'</strong></span>':'')
+          +'</div>'
+          +'<div class="client-actions">'
+          +'<button class="client-btn primary" onclick="openStatementModal(\''+esc(c.ref)+'\')"><i data-feather="file-text" style="width:14px;height:14px;"></i> Send Statement</button>'
+          +(balance>0.01?'<button class="client-btn danger" onclick="sendSingleDebtReminder(\''+esc(c.ref)+'\')"><i data-feather="alert-circle" style="width:14px;height:14px;"></i> Debt Reminder</button>':'')
+          +(balance<-0.01?'<button class="client-btn" style="color:var(--purple);border-color:var(--purple);" onclick="showToast(\'Refund workflow for '+esc(c.ref)+' - use Add Transaction to issue a CHARGE adjustment\',\'var(--purple)\')"><i data-feather="rotate-ccw" style="width:14px;height:14px;"></i> Refund</button>':'')
+          +'</div></div>';
+      }).join('');
+    }
+    feather.replace();
+
+    var clientPag = document.getElementById('clientPagination');
+    if(clients.length > clientPageSize){
+      clientPag.style.display='block';
+      renderPagination(clientPag, clientPage, totalPages, clients.length, clientPageSize, function(p){ clientPage=p; renderClientAccounts(); });
+    } else { clientPag.style.display='none'; }
+  }
+
+  function renderPnL(){
+    var charges=0, payments=0, refunds=0;
+    transactions.forEach(function(t){
+      if(t.type==='REFUND') refunds += Math.abs(t.amount);
+      else if(t.amount>=0) charges += t.amount;
+      else payments += Math.abs(t.amount);
+    });
+    var vat = charges * 0.15;
+    document.getElementById('pnlRevenue').textContent = '$'+charges.toFixed(2);
+    document.getElementById('pnlPayments').textContent = '$'+payments.toFixed(2);
+    document.getElementById('pnlOutstanding').textContent = '$'+(charges - payments).toFixed(2);
+    document.getElementById('pnlVAT').textContent = '$'+vat.toFixed(2);
+    document.getElementById('pnlExVAT').textContent = '$'+(charges - vat).toFixed(2);
+    document.getElementById('pnlRefunds').textContent = '$'+refunds.toFixed(2);
+  }
+
+  function formatTimestamp(d){
+    if(!d) return '-';
+    try{
+      var dt = new Date(d);
+      if(isNaN(dt.getTime())) return String(d);
+      return dt.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'})+' '+dt.toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'});
+    }catch(e){return String(d);}
+  }
+
+  // ===== ADD TRANSACTION =====
+  function openAddTxn(){ document.getElementById('addTxnModal').classList.add('open'); }
+  function closeTxnModal(){ document.getElementById('addTxnModal').classList.remove('open'); }
+
+  function submitTxn(){
+    var ref = document.getElementById('txn_ref').value.trim();
+    var desc = document.getElementById('txn_desc').value.trim();
+    var amount = parseFloat(document.getElementById('txn_amount').value);
+    var type = document.getElementById('txn_type').value;
+    var btn = document.getElementById('txnSubmitBtn');
+    if(!ref||!desc||isNaN(amount)||amount<=0){alert('Fill all required fields with a positive amount');return;}
+    if(type==='PAYMENT'||type==='REFUND') amount = -Math.abs(amount);
+
+    btn.disabled=true; btn.textContent='Adding...';
+    var data = {reference:ref, date:new Date().toISOString().split('T')[0], description:desc, amount:amount, type:type, createdBy:'Admin'};
+
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){
+        btn.disabled=false; btn.textContent='Add Transaction';
+        if(r.success){closeTxnModal(); showToast('Transaction added!'); loadTransactions();}
+        else {alert('Error: '+r.error);}
+      }).withFailureHandler(function(e){
+        btn.disabled=false; btn.textContent='Add Transaction';
+        alert('Error: '+(e&&e.message?e.message:'Unknown'));
+      }).addTransaction(data);
+    } else {
+      transactions.push({id:'TXN-'+Date.now(),reference:ref,date:data.date,description:desc,amount:amount,type:type,createdBy:'Admin',createdAt:new Date().toISOString()});
+      btn.disabled=false; btn.textContent='Add Transaction';
+      closeTxnModal(); showToast('Transaction added!'); renderLedger();
+      document.getElementById('txn_ref').value=''; document.getElementById('txn_desc').value=''; document.getElementById('txn_amount').value='';
+    }
+  }
+
+  function deleteTxn(id){
+    if(!confirm('Delete this transaction?')) return;
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){
+        if(r.success){ showToast('Deleted'); loadTransactions(); }
+        else alert('Error: '+r.error);
+      }).withFailureHandler(function(e){ alert('Error: '+(e&&e.message?e.message:'Unknown')); }).deleteTransaction({transactionId:id,deletedBy:'Admin'});
+    } else {
+      transactions = transactions.filter(function(t){return t.id!==id;});
+      showToast('Deleted'); renderLedger();
+    }
+  }
+
+  // ===== STATEMENTS =====
+  function openStatementModal(ref){
+    document.getElementById('stmt_ref').value = ref;
+    document.getElementById('stmt_email').value = '';
+    document.getElementById('statementModal').classList.add('open');
+  }
+  function closeStatementModal(){ document.getElementById('statementModal').classList.remove('open'); }
+
+  function sendStatementAction(){
+    var ref = document.getElementById('stmt_ref').value;
+    var email = document.getElementById('stmt_email').value.trim();
+    if(!email){alert('Please enter an email');return;}
+    var btn = document.getElementById('stmtSendBtn');
+    btn.disabled=true; btn.textContent='Sending...';
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){
+        btn.disabled=false; btn.textContent='Send Statement';
+        if(r.success){closeStatementModal(); showToast('Statement sent to '+email);}
+        else alert('Error: '+(r.error||'Unknown'));
+      }).withFailureHandler(function(e){
+        btn.disabled=false; btn.textContent='Send Statement';
+        alert('Error: '+(e&&e.message?e.message:'Unknown'));
+      }).sendStatementEmail({reference:ref,email:email});
+    } else {
+      btn.disabled=false; btn.textContent='Send Statement';
+      closeStatementModal(); showToast('Demo: Statement for '+ref+' sent to '+email);
+    }
+  }
+
+  // ===== DEBT COLLECTION =====
+  function openBulkDebtModal(){
+    var refMap = buildClientMap();
+    var owingClients = [];
+    for(var k in refMap){
+      if(refMap.hasOwnProperty(k)){
+        var b = refMap[k].charges - refMap[k].payments;
+        if(b > 0.01) owingClients.push({ref:k, balance:b});
+      }
+    }
+    if(owingClients.length===0){ showToast('No owing accounts found!','var(--success)'); return; }
+    document.getElementById('debtPreview').innerHTML = '<strong>Will send to '+owingClients.length+' client(s):</strong><br>'
+      +owingClients.map(function(c){return esc(c.ref)+' - <strong style="color:var(--danger)">$'+c.balance.toFixed(2)+'</strong>';}).join('<br>');
+    document.getElementById('debtSendBtn').textContent = 'Send to '+owingClients.length+' Owing Client(s)';
+    document.getElementById('debtModal').classList.add('open');
+  }
+  function closeDebtModal(){ document.getElementById('debtModal').classList.remove('open'); }
+
+  function sendBulkDebtReminders(){
+    var subject = document.getElementById('debtSubject').value.trim();
+    var message = document.getElementById('debtMessage').value.trim();
+    if(!subject||!message){alert('Subject and message required');return;}
+    var btn = document.getElementById('debtSendBtn');
+    btn.disabled=true; btn.textContent='Sending...';
+
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){
+        btn.disabled=false; btn.textContent='Send to All Owing Clients';
+        if(r.success){
+          closeDebtModal();
+          showToast('Sent '+r.sentCount+' debt reminder(s)!');
+        } else { alert('Error: '+(r.error||'Unknown')); }
+      }).withFailureHandler(function(e){
+        btn.disabled=false; btn.textContent='Send to All Owing Clients';
+        alert('Error: '+(e&&e.message?e.message:'Unknown'));
+      }).sendBulkDebtReminders({subject:subject, message:message});
+    } else {
+      btn.disabled=false; btn.textContent='Send to All Owing Clients';
+      closeDebtModal(); showToast('Demo: Bulk debt reminders would be sent');
+    }
+  }
+
+  function sendSingleDebtReminder(ref){
+    var email = prompt('Enter client email for '+ref+':');
+    if(!email) return;
+    var subject = document.getElementById('debtSubject') ? document.getElementById('debtSubject').value : 'Outstanding Balance Reminder';
+    var message = 'Dear {name},\n\nThis is a friendly reminder that your account ({reference}) has an outstanding balance of {balance}.\n\nPlease settle at your earliest convenience.\n\nThank you.';
+
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){
+        if(r.success) showToast('Debt reminder sent to '+email);
+        else alert('Error: '+(r.error||'Unknown'));
+      }).withFailureHandler(function(e){
+        alert('Error: '+(e&&e.message?e.message:'Unknown'));
+      }).sendDebtReminder({reference:ref, email:email, subject:subject, message:message});
+    } else {
+      showToast('Demo: Debt reminder for '+ref+' sent to '+email);
+    }
+  }
+
+  // ===== LOAD DATA =====
+  function loadTransactions(){
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){
+        var txns = [];
+        if(r && r.transactions) txns = r.transactions;
+        else if(Array.isArray(r)) txns = r;
+        transactions = txns;
+        document.getElementById('loadingState').style.display='none';
+        renderLedger();
+      }).withFailureHandler(function(e){
+        document.getElementById('loadingState').innerHTML='<p style="color:#ef4444;">Error loading transactions: '+(e&&e.message?e.message:'Unknown error')+'</p>';
+      }).getAllTransactions();
+    } else {
+      transactions = [
+        {id:'TXN-001',reference:'2602DEMO001',date:'2026-02-01',description:'Order: 1 item(s)',amount:89,type:'CHARGE',createdBy:'SYSTEM',createdAt:'2026-02-01T09:00:00Z'},
+        {id:'TXN-002',reference:'2602SMITH002',date:'2026-02-02',description:'Order: 2 item(s)',amount:358,type:'CHARGE',createdBy:'SYSTEM',createdAt:'2026-02-02T10:30:00Z'},
+        {id:'TXN-003',reference:'2602SMITH002',date:'2026-02-03',description:'PayPal Payment',amount:-358,type:'PAYMENT',createdBy:'SYSTEM',createdAt:'2026-02-03T14:00:00Z'},
+        {id:'TXN-004',reference:'2602JONES003',date:'2026-02-04',description:'Order: 3 item(s)',amount:520,type:'CHARGE',createdBy:'SYSTEM',createdAt:'2026-02-04T08:15:00Z'},
+        {id:'TXN-005',reference:'2602JONES003',date:'2026-02-05',description:'Partial Payment',amount:-200,type:'PAYMENT',createdBy:'Admin',createdAt:'2026-02-05T16:00:00Z'},
+        {id:'TXN-006',reference:'2602LEE0004',date:'2026-02-06',description:'Order: 1 item(s)',amount:150,type:'CHARGE',createdBy:'SYSTEM',createdAt:'2026-02-06T11:00:00Z'},
+        {id:'TXN-007',reference:'2602LEE0004',date:'2026-02-07',description:'Full Payment',amount:-150,type:'PAYMENT',createdBy:'SYSTEM',createdAt:'2026-02-07T09:30:00Z'},
+        {id:'TXN-008',reference:'2602LEE0004',date:'2026-02-08',description:'Extra payment / overpayment',amount:-25,type:'PAYMENT',createdBy:'Admin',createdAt:'2026-02-08T12:00:00Z'}
+      ];
+      document.getElementById('loadingState').style.display='none';
+      renderLedger();
+    }
+  }
+
+  loadTransactions();
+</script>
+</body>
+</html>

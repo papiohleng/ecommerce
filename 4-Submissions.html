@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Maboneng Art</title>
+  <base target="_top">
+  <script src="https://unpkg.com/feather-icons"></script>
+  <style>
+    :root{--bg:#fafafa;--text:#18181b;--card:white;--border:#e4e4e7;--accent:#18181b;--gold:#c9a962;--danger:#ef4444;--success:#22c55e;--info:#3b82f6;--warning:#f59e0b;}
+    [data-theme="dark"]{--bg:#0a0a0a;--text:#fafafa;--card:#141414;--border:#262626;--accent:#fafafa;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);transition:0.3s;}
+
+    /* Admin Nav */
+    .admin-nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--card);border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;padding:0 16px;gap:8px;}
+    .nav-brand{font-weight:800;font-size:18px;color:var(--gold);margin-right:16px;white-space:nowrap;}
+    .nav-links{display:flex;gap:4px;overflow-x:auto;flex:1;}
+    .nav-link{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text);text-decoration:none;white-space:nowrap;transition:0.2s;border:1px solid transparent;}
+    .nav-link:hover{background:rgba(201,169,98,0.1);border-color:var(--gold);}
+    .nav-link.active{background:var(--gold);color:#000;}
+    .nav-link .badge{background:var(--danger);color:white;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:4px;}
+    .nav-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+    .theme-btn{background:none;border:none;color:var(--text);cursor:pointer;padding:8px;}
+
+    /* Stats Bar */
+    .stats-bar{display:flex;gap:12px;padding:72px 16px 16px;overflow-x:auto;}
+    .stat-card{flex:0 0 auto;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;min-width:140px;}
+    .stat-value{font-size:28px;font-weight:800;}
+    .stat-label{font-size:12px;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-top:4px;}
+
+    /* Search + Filter */
+    .controls{display:flex;gap:12px;padding:12px 16px;flex-wrap:wrap;align-items:center;}
+    .search-input{flex:1;min-width:200px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;outline:none;}
+    .search-input:focus{border-color:var(--gold);}
+    .filter-btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;transition:0.2s;}
+    .filter-btn.active{background:var(--gold);color:#000;border-color:var(--gold);}
+
+    /* Order Cards */
+    .orders-grid{padding:8px 16px 100px;display:grid;gap:12px;}
+    .order-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;transition:0.3s;cursor:pointer;}
+    .order-card:hover{border-color:var(--gold);box-shadow:0 4px 20px rgba(201,169,98,0.15);}
+    .order-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+    .order-ref{font-size:18px;font-weight:800;color:var(--gold);letter-spacing:1px;}
+    .order-date{font-size:12px;color:var(--text);opacity:0.6;}
+    .order-customer{font-size:15px;font-weight:600;margin-bottom:8px;}
+    .order-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--text);opacity:0.8;}
+    .order-meta span{display:flex;align-items:center;gap:4px;}
+    .order-footer{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap;gap:8px;}
+    .order-amount{font-size:22px;font-weight:800;}
+    .order-actions{display:flex;gap:6px;flex-wrap:wrap;}
+
+    /* Status Badges */
+    .status-badge{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+    .status-new{background:rgba(59,130,246,0.15);color:var(--info);}
+    .status-processing{background:rgba(245,158,11,0.15);color:var(--warning);}
+    .status-shipped{background:rgba(168,85,247,0.15);color:#a855f7;}
+    .status-delivered{background:rgba(34,197,94,0.15);color:var(--success);}
+    .status-cancelled{background:rgba(239,68,68,0.15);color:var(--danger);}
+    .status-refunded{background:rgba(107,114,128,0.15);color:#6b7280;}
+    .payment-paid{color:var(--success);}
+    .payment-pending{color:var(--warning);}
+
+    /* Action Buttons */
+    .action-btn{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;transition:0.2s;display:flex;align-items:center;gap:4px;}
+    .action-btn:hover{border-color:var(--gold);background:rgba(201,169,98,0.1);}
+    .action-btn.danger:hover{border-color:var(--danger);background:rgba(239,68,68,0.1);color:var(--danger);}
+    .action-btn.primary{background:var(--gold);color:#000;border-color:var(--gold);}
+
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:none;justify-content:center;align-items:center;padding:20px;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:var(--card);border:1px solid var(--border);border-radius:16px;max-width:700px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+    .modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--card);z-index:5;border-radius:16px 16px 0 0;}
+    .modal-header h2{font-size:18px;font-weight:800;color:var(--gold);}
+    .modal-close{background:none;border:none;color:var(--text);font-size:24px;cursor:pointer;padding:4px;}
+    .modal-body{padding:24px;}
+    .modal-section{margin-bottom:20px;}
+    .modal-section h3{font-size:14px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+    .detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;}
+    .detail-item{background:rgba(0,0,0,0.05);padding:12px;border-radius:8px;}
+    .detail-item label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);display:block;margin-bottom:4px;}
+    .detail-item span{font-size:15px;font-weight:600;}
+    .detail-item select,.detail-item input{width:100%;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;margin-top:4px;}
+
+    /* Comments */
+    .comment{padding:10px 14px;background:rgba(0,0,0,0.03);border-radius:8px;margin-bottom:8px;border-left:3px solid var(--gold);}
+    .comment-author{font-weight:700;font-size:13px;color:var(--gold);}
+    .comment-time{font-size:11px;color:var(--text);opacity:0.5;margin-left:8px;}
+    .comment-text{font-size:14px;margin-top:4px;}
+    .comment-input-row{display:flex;gap:8px;margin-top:12px;}
+    .comment-input-row input{flex:1;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;}
+    .comment-input-row button{padding:10px 20px;background:var(--gold);color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;}
+
+    /* Items Table */
+    .items-table{width:100%;border-collapse:collapse;}
+    .items-table th,.items-table td{padding:10px;text-align:left;border-bottom:1px solid var(--border);}
+    .items-table th{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);}
+
+    /* Email Modal */
+    .email-form input,.email-form textarea{width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:10px;}
+    .email-form textarea{min-height:120px;resize:vertical;}
+
+    /* Delete Modal */
+    .delete-form input{width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:10px;}
+    .delete-confirm-btn{width:100%;padding:14px;background:var(--danger);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;}
+
+    /* Transactions Section */
+    .txn-table-wrapper{overflow-x:auto;margin-top:12px;border:1px solid var(--border);border-radius:10px;}
+    .txn-table{width:100%;border-collapse:collapse;}
+    .txn-table th,.txn-table td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);font-size:13px;}
+    .txn-table th{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);font-weight:700;background:rgba(201,169,98,0.05);}
+    .txn-table tr:last-child td{border-bottom:none;}
+    .txn-table tr:hover:not(.txn-balance-row){background:rgba(201,169,98,0.03);}
+    .txn-debit{color:var(--danger);font-weight:700;}
+    .txn-credit{color:var(--success);font-weight:700;}
+    .txn-timestamp{font-size:11px;color:var(--text);opacity:0.6;white-space:nowrap;}
+    .txn-actions{display:flex;gap:4px;}
+    .txn-icon-btn{background:none;border:none;cursor:pointer;padding:4px;opacity:0.6;transition:0.2s;display:flex;align-items:center;justify-content:center;border-radius:4px;}
+    .txn-icon-btn:hover{opacity:1;background:rgba(255,255,255,0.1);}
+    .txn-icon-btn.delete{color:var(--danger);}
+    .txn-icon-btn.edit{color:var(--info);}
+    .txn-balance-row{background:rgba(201,169,98,0.1);font-weight:800;}
+    .txn-balance-row td{font-size:15px;border-bottom:none;}
+    .add-txn-form{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding:16px;background:rgba(201,169,98,0.04);border-radius:12px;border:1px dashed var(--border);align-items:flex-end;}
+    .add-txn-field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:130px;}
+    .add-txn-field label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);font-weight:600;}
+    .add-txn-field input,.add-txn-field select{padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;width:100%;}
+    .add-txn-field input:focus,.add-txn-field select:focus{border-color:var(--gold);outline:none;}
+    .add-txn-submit{padding:10px 24px;background:var(--gold);color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;white-space:nowrap;font-size:13px;height:42px;transition:0.2s;}
+    .add-txn-submit:hover{opacity:0.9;transform:translateY(-1px);}
+    .add-txn-submit:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+    .balance-summary{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0;padding:0;}
+    .balance-card{flex:1;min-width:120px;text-align:center;padding:14px;background:var(--card);border-radius:10px;border:1px solid var(--border);transition:0.2s;}
+    .balance-card:hover{border-color:var(--gold);}
+    .balance-card .val{font-size:22px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums;}
+    .balance-card .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);font-weight:600;}
+    .txn-edit-row input{padding:6px 8px;background:var(--bg);border:1px solid var(--gold);border-radius:4px;color:var(--text);font-size:13px;width:100%;}
+
+    .empty-state{text-align:center;padding:80px 20px;}
+    .empty-state h3{font-size:20px;margin-bottom:8px;}
+    .empty-state p{color:var(--text);opacity:0.5;}
+    .loading{text-align:center;padding:80px 20px;font-size:16px;}
+  </style>
+</head>
+<body>
+
+  <nav class="admin-nav">
+    <span class="nav-brand">Maboneng Art</span>
+    <div class="nav-links">
+      <a href="?action=shop" class="nav-link">Shop</a>
+      <a href="?action=admin" class="nav-link active">Orders</a>
+      <a href="?action=inventory" class="nav-link">Inventory</a>
+      <a href="?action=new-inventory" class="nav-link">+ New</a>
+      <a href="?action=transactions" class="nav-link">Transactions</a>
+      <a href="?action=deleted" class="nav-link">Deleted <span class="badge" id="deletedBadge">0</span></a>
+    </div>
+    <div class="nav-right">
+      <button class="theme-btn" id="themeToggle"><i data-feather="moon"></i></button>
+    </div>
+  </nav>
+
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-card"><div class="stat-value" id="statTotal">-</div><div class="stat-label">Total Orders</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--info)" id="statNew">-</div><div class="stat-label">New</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--warning)" id="statProcessing">-</div><div class="stat-label">Processing</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:#a855f7" id="statShipped">-</div><div class="stat-label">Shipped</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--success)" id="statDelivered">-</div><div class="stat-label">Delivered</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--gold)" id="statRevenue">-</div><div class="stat-label">Revenue</div></div>
+  </div>
+
+  <div class="controls">
+    <input type="text" class="search-input" id="searchInput" placeholder="Search by reference, name, email, status...">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="new">New</button>
+    <button class="filter-btn" data-filter="processing">Processing</button>
+    <button class="filter-btn" data-filter="shipped">Shipped</button>
+    <button class="filter-btn" data-filter="delivered">Delivered</button>
+    <button class="filter-btn" data-filter="pending">Unpaid</button>
+  </div>
+
+  <div class="loading" id="loadingState">Loading orders...</div>
+  <div class="orders-grid" id="ordersGrid" style="display:none;"></div>
+  <div class="empty-state" id="emptyState" style="display:none;"><h3>No orders found</h3><p>Orders will appear here when customers checkout.</p></div>
+
+  <!-- View Order Modal -->
+  <div class="modal-overlay" id="viewModal">
+    <div class="modal">
+      <div class="modal-header"><h2 id="modalRef">Order Details</h2><button class="modal-close" onclick="closeModal('viewModal')">X</button></div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Email Modal -->
+  <div class="modal-overlay" id="emailModal">
+    <div class="modal" style="max-width:500px;">
+      <div class="modal-header"><h2>Send Email</h2><button class="modal-close" onclick="closeModal('emailModal')">X</button></div>
+      <div class="modal-body email-form">
+        <input type="hidden" id="emailRef">
+        <input type="email" id="emailTo" placeholder="Recipient email">
+        <input type="text" id="emailSubject" placeholder="Subject">
+        <textarea id="emailBody" placeholder="Message body..."></textarea>
+        <button class="action-btn primary" style="width:100%;justify-content:center;padding:14px;font-size:16px;" onclick="sendEmailAction()">Send Email</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal" style="max-width:440px;">
+      <div class="modal-header"><h2 style="color:var(--danger)">Cancel Order</h2><button class="modal-close" onclick="closeModal('deleteModal')">X</button></div>
+      <div class="modal-body delete-form">
+        <input type="hidden" id="deleteRef">
+        <p style="margin-bottom:16px;">This will move the order to the Deleted archive. You can restore it later.</p>
+        <input type="text" id="deleteReason" placeholder="Reason for cancellation *">
+        <button class="delete-confirm-btn" onclick="confirmDelete()">Confirm Cancellation</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  feather.replace();
+  var orders = [], currentFilter = 'all', selectedOrder = null;
+
+  // Theme
+  document.getElementById('themeToggle').onclick = function(){
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  };
+
+  // Filters
+  document.querySelectorAll('.filter-btn').forEach(function(b){
+    b.onclick = function(){
+      document.querySelectorAll('.filter-btn').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      currentFilter = b.dataset.filter;
+      renderOrders();
+    };
+  });
+
+  document.getElementById('searchInput').addEventListener('input', function(){ renderOrders(); });
+
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function statusClass(s){
+    s = (s||'new').toLowerCase();
+    if(s==='new') return 'status-new';
+    if(s==='processing') return 'status-processing';
+    if(s==='shipped') return 'status-shipped';
+    if(s==='delivered') return 'status-delivered';
+    if(s==='cancelled') return 'status-cancelled';
+    if(s==='refunded') return 'status-refunded';
+    return 'status-new';
+  }
+
+  function renderOrders(){
+    var search = document.getElementById('searchInput').value.toLowerCase();
+    var filtered = orders.filter(function(o){
+      if(currentFilter !== 'all'){
+        if(currentFilter === 'pending' && o.paymentStatus !== 'pending') return false;
+        else if(currentFilter !== 'pending' && o.status !== currentFilter) return false;
+      }
+      if(search){
+        var hay = (o.reference+' '+o.customerName+' '+o.customerSurname+' '+o.email+' '+o.status+' '+o.paymentStatus).toLowerCase();
+        if(hay.indexOf(search) === -1) return false;
+      }
+      return true;
+    });
+
+    var grid = document.getElementById('ordersGrid');
+    var empty = document.getElementById('emptyState');
+
+    if(filtered.length === 0){
+      grid.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+
+    empty.style.display = 'none';
+    grid.style.display = 'grid';
+
+    grid.innerHTML = filtered.map(function(o){
+      var balance = o.balance !== undefined ? o.balance : o.totalAmount;
+      return '<div class="order-card" onclick="viewOrder(\''+esc(o.reference)+'\')">'
+        +'<div class="order-header">'
+        +'<div><div class="order-ref">'+esc(o.reference)+'</div><div class="order-date">'+formatDate(o.timestamp)+'</div></div>'
+        +'<span class="status-badge '+statusClass(o.status)+'">'+esc(o.status)+'</span>'
+        +'</div>'
+        +'<div class="order-customer">'+esc(o.customerName)+' '+esc(o.customerSurname)+'</div>'
+        +'<div class="order-meta">'
+        +'<span><i data-feather="mail" style="width:14px;height:14px;"></i> '+esc(o.email)+'</span>'
+        +'<span><i data-feather="package" style="width:14px;height:14px;"></i> '+o.itemCount+' items</span>'
+        +'<span><i data-feather="credit-card" style="width:14px;height:14px;"></i> '+esc(o.paymentMethod)+' (<span class="payment-'+o.paymentStatus+'">'+esc(o.paymentStatus)+'</span>)</span>'
+        +(o.commentCount ? '<span><i data-feather="message-square" style="width:14px;height:14px;"></i> '+o.commentCount+'</span>' : '')
+        +'</div>'
+        +'<div class="order-footer">'
+        +'<div><div class="order-amount">$'+o.totalAmount.toFixed(2)+'</div>'
+        +(balance > 0 ? '<div style="font-size:12px;color:var(--danger);">Balance: $'+balance.toFixed(2)+'</div>' : '<div style="font-size:12px;color:var(--success);">Paid</div>')
+        +'</div>'
+        +'<div class="order-actions">'
+        +'<button class="action-btn" onclick="event.stopPropagation();viewOrder(\''+esc(o.reference)+'\')"><i data-feather="eye" style="width:14px;height:14px;"></i> View</button>'
+        +'<button class="action-btn" onclick="event.stopPropagation();openEmail(\''+esc(o.reference)+'\',\''+esc(o.email)+'\')"><i data-feather="mail" style="width:14px;height:14px;"></i></button>'
+        +'<button class="action-btn danger" onclick="event.stopPropagation();openDelete(\''+esc(o.reference)+'\')"><i data-feather="trash-2" style="width:14px;height:14px;"></i></button>'
+        +'</div></div></div>';
+    }).join('');
+    feather.replace();
+  }
+
+  function updateStats(){
+    var stats = {total:orders.length,new:0,processing:0,shipped:0,delivered:0,revenue:0};
+    orders.forEach(function(o){
+      if(stats.hasOwnProperty(o.status)) stats[o.status]++;
+      stats.revenue += o.totalAmount;
+    });
+    document.getElementById('statTotal').textContent = stats.total;
+    document.getElementById('statNew').textContent = stats.new;
+    document.getElementById('statProcessing').textContent = stats.processing;
+    document.getElementById('statShipped').textContent = stats.shipped;
+    document.getElementById('statDelivered').textContent = stats.delivered;
+    document.getElementById('statRevenue').textContent = '$'+stats.revenue.toFixed(0);
+  }
+
+  function viewOrder(ref){
+    selectedOrder = orders.find(function(o){return o.reference === ref;});
+    if(!selectedOrder) return;
+    document.getElementById('modalRef').textContent = 'Order: ' + ref;
+
+    var items = [];
+    try { items = JSON.parse(selectedOrder.itemsJson || '[]'); } catch(e){}
+
+    var html = '<div class="modal-section"><h3>Customer</h3><div class="detail-grid">'
+      +'<div class="detail-item"><label>Name</label><span>'+esc(selectedOrder.customerName)+' '+esc(selectedOrder.customerSurname)+'</span></div>'
+      +'<div class="detail-item"><label>Email</label><span>'+esc(selectedOrder.email)+'</span></div>'
+      +'<div class="detail-item"><label>Phone</label><span>'+esc(selectedOrder.phone||'N/A')+'</span></div>'
+      +'<div class="detail-item"><label>Address</label><span>'+esc(selectedOrder.shippingAddress)+', '+esc(selectedOrder.city)+' '+esc(selectedOrder.postalCode)+'</span></div>'
+      +'</div></div>';
+
+    html += '<div class="modal-section"><h3>Status & Payment</h3><div class="detail-grid">'
+      +'<div class="detail-item"><label>Status</label><select onchange="updateField(\''+ref+'\',\'status\',this.value)">'
+      +['new','processing','shipped','delivered','cancelled','refunded'].map(function(s){return '<option value="'+s+'"'+(selectedOrder.status===s?' selected':'')+'>'+s.charAt(0).toUpperCase()+s.slice(1)+'</option>';}).join('')
+      +'</select></div>'
+      +'<div class="detail-item"><label>Payment Status</label><select onchange="updateField(\''+ref+'\',\'paymentStatus\',this.value)">'
+      +['pending','paid','partial','refunded'].map(function(s){return '<option value="'+s+'"'+(selectedOrder.paymentStatus===s?' selected':'')+'>'+s.charAt(0).toUpperCase()+s.slice(1)+'</option>';}).join('')
+      +'</select></div>'
+      +'<div class="detail-item"><label>Payment Method</label><span>'+esc(selectedOrder.paymentMethod)+'</span></div>'
+      +'<div class="detail-item"><label>Tracking Number</label><input value="'+esc(selectedOrder.trackingNumber)+'" onchange="updateField(\''+ref+'\',\'trackingNumber\',this.value)" placeholder="Enter tracking #"></div>'
+      +'</div></div>';
+
+    html += '<div class="modal-section"><h3>Items ('+items.length+')</h3><table class="items-table"><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr>';
+    items.forEach(function(it){
+      html += '<tr><td>'+esc(it.name)+'</td><td>'+it.quantity+'</td><td>$'+parseFloat(it.price).toFixed(2)+'</td><td>$'+(it.price*it.quantity).toFixed(2)+'</td></tr>';
+    });
+    html += '</table></div>';
+
+    html += '<div class="modal-section"><h3>Financials</h3><div class="detail-grid">'
+      +'<div class="detail-item"><label>Subtotal</label><span>$'+selectedOrder.subtotal.toFixed(2)+'</span></div>'
+      +'<div class="detail-item"><label>Shipping</label><span>'+(selectedOrder.shippingFee===0?'FREE':'$'+selectedOrder.shippingFee.toFixed(2))+'</span></div>'
+      +'<div class="detail-item"><label>Savings</label><span style="color:var(--success)">$'+selectedOrder.totalSavings.toFixed(2)+'</span></div>'
+      +'<div class="detail-item"><label>Total</label><span style="font-size:20px;color:var(--gold)">$'+selectedOrder.totalAmount.toFixed(2)+'</span></div>'
+      +'</div></div>';
+
+    // Transactions section
+    html += '<div class="modal-section"><h3>Transactions / Billing</h3>'
+      +'<div class="balance-summary" id="balanceSummary">'
+      +'<div class="balance-card"><div class="lbl">Total Charges</div><div class="val" id="totalCharges" style="color:var(--danger)">$0.00</div></div>'
+      +'<div class="balance-card"><div class="lbl">Total Payments</div><div class="val" id="totalPayments" style="color:var(--success)">$0.00</div></div>'
+      +'<div class="balance-card"><div class="lbl">Balance Due</div><div class="val" id="balanceDue" style="color:var(--gold)">$0.00</div></div>'
+      +'<div class="balance-card"><div class="lbl">Transactions</div><div class="val" id="txnCount" style="color:var(--info)">0</div></div>'
+      +'</div>'
+      +'<div id="txnTableContainer"><p style="opacity:0.5;padding:12px;">Loading transactions...</p></div>'
+      +'<div class="add-txn-form" id="addTxnForm">'
+      +'<div class="add-txn-field" style="flex:2;min-width:180px;"><label>Description</label><input type="text" id="txnDesc" placeholder="e.g. PayPal payment received"></div>'
+      +'<div class="add-txn-field" style="min-width:100px;"><label>Amount ($)</label><input type="number" id="txnAmount" placeholder="0.00" step="0.01" min="0.01"></div>'
+      +'<div class="add-txn-field" style="min-width:130px;"><label>Type</label><select id="txnType"><option value="CHARGE">Charge (Debit)</option><option value="PAYMENT">Payment (Credit)</option><option value="REFUND">Refund (Credit)</option><option value="ADJUSTMENT">Adjustment</option></select></div>'
+      +'<button class="add-txn-submit" id="txnSubmitBtn" onclick="addTransaction(\''+esc(ref)+'\')">'
+      +'<i data-feather="plus-circle" style="width:14px;height:14px;margin-right:4px;display:inline;vertical-align:middle;"></i> Add</button>'
+      +'</div>'
+      +'<p style="font-size:11px;opacity:0.4;margin-top:6px;">Timestamp is auto-generated when you add a transaction.</p>'
+      +'</div>';
+
+    // Comments section
+    html += '<div class="modal-section"><h3>Comments & History</h3><div id="commentsContainer">Loading...</div>'
+      +'<div class="comment-input-row"><input type="text" id="newComment" placeholder="Add a comment...">'
+      +'<button onclick="addComment(\''+esc(ref)+'\')">Post</button></div></div>';
+
+    // Actions
+    html += '<div class="modal-section" style="display:flex;gap:8px;flex-wrap:wrap;">'
+      +'<button class="action-btn primary" onclick="sendConfirmation(\''+esc(ref)+'\')"><i data-feather="send" style="width:14px;height:14px;"></i> Send Confirmation</button>'
+      +'<button class="action-btn" style="border-color:var(--gold);color:var(--gold);" onclick="sendStatement(\''+esc(ref)+'\',\''+esc(selectedOrder.email)+'\')"><i data-feather="file-text" style="width:14px;height:14px;"></i> Send Statement</button>'
+      +'<button class="action-btn" onclick="openEmail(\''+esc(ref)+'\',\''+esc(selectedOrder.email)+'\');closeModal(\'viewModal\')"><i data-feather="mail" style="width:14px;height:14px;"></i> Email Customer</button>'
+      +'<button class="action-btn danger" onclick="openDelete(\''+esc(ref)+'\');closeModal(\'viewModal\')"><i data-feather="trash-2" style="width:14px;height:14px;"></i> Cancel Order</button>'
+      +'</div>';
+
+    document.getElementById('modalBody').innerHTML = html;
+    feather.replace();
+    document.getElementById('viewModal').classList.add('open');
+    loadComments(ref);
+    loadTransactions(ref);
+  }
+
+  function loadComments(ref){
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){
+        var comments = [];
+        if(r && r.comments) comments = r.comments;
+        else if(Array.isArray(r)) comments = r;
+        renderComments(comments);
+      }).withFailureHandler(function(e){
+        document.getElementById('commentsContainer').innerHTML = '<p style="color:var(--danger)">Failed to load comments: '+(e&&e.message?esc(e.message):'Unknown error')+'</p>';
+      }).getCommentsForOrder(ref);
+    } else {
+      renderComments([{author:'SYSTEM',text:'Order created',timestamp:new Date().toISOString()}]);
+    }
+  }
+
+  function renderComments(comments){
+    var el = document.getElementById('commentsContainer');
+    if(!comments.length){el.innerHTML='<p style="opacity:0.5;">No comments yet</p>';return;}
+    el.innerHTML = comments.map(function(c){
+      return '<div class="comment"><span class="comment-author">'+esc(c.author)+'</span><span class="comment-time">'+formatDate(c.timestamp)+'</span><div class="comment-text">'+esc(c.text)+'</div></div>';
+    }).join('');
+  }
+
+  function addComment(ref){
+    var input = document.getElementById('newComment');
+    var text = input.value.trim();
+    if(!text) return;
+    input.value = '';
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(){loadComments(ref);}).addComment(ref, text, 'Admin');
+    } else {
+      var el = document.getElementById('commentsContainer');
+      el.innerHTML = '<div class="comment"><span class="comment-author">Admin</span><span class="comment-time">Just now</span><div class="comment-text">'+esc(text)+'</div></div>' + el.innerHTML;
+    }
+  }
+
+  function updateField(ref, field, value){
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(){loadOrders();}).updateOrderField({reference:ref,field:field,value:value});
+    } else {
+      var o = orders.find(function(x){return x.reference===ref;});
+      if(o) o[field] = value;
+      renderOrders(); updateStats();
+    }
+  }
+
+  function sendStatement(ref, prefillEmail){
+    var email = prompt('Send account statement to:', prefillEmail || '');
+    if(!email || !email.trim()) return;
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){
+        if(r.success) alert('Statement sent to ' + email + '!');
+        else alert('Error: ' + (r.error || 'Unknown'));
+      }).withFailureHandler(function(e){
+        alert('Error: ' + (e&&e.message?e.message:'Unknown'));
+      }).sendStatementEmail({reference:ref, email:email.trim()});
+    } else { alert('Demo: Statement for ' + ref + ' would be sent to ' + email); }
+  }
+
+  function sendConfirmation(ref){
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){alert(r.success?'Confirmation sent!':'Error: '+(r.error||'Unknown'));}).sendOrderConfirmation({reference:ref});
+    } else { alert('Demo: Confirmation would be sent for '+ref); }
+  }
+
+  function openEmail(ref, email){
+    document.getElementById('emailRef').value = ref;
+    document.getElementById('emailTo').value = email;
+    document.getElementById('emailSubject').value = 'Regarding Order: ' + ref;
+    document.getElementById('emailBody').value = '';
+    document.getElementById('emailModal').classList.add('open');
+  }
+
+  function sendEmailAction(){
+    var data = {reference:document.getElementById('emailRef').value,to:document.getElementById('emailTo').value,subject:document.getElementById('emailSubject').value,body:document.getElementById('emailBody').value};
+    if(!data.to||!data.subject||!data.body){alert('Please fill all fields');return;}
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){alert(r.success?'Email sent!':'Error: '+r.error);closeModal('emailModal');}).sendCustomEmail(data);
+    } else { alert('Demo: Email would be sent to '+data.to); closeModal('emailModal'); }
+  }
+
+  function openDelete(ref){
+    document.getElementById('deleteRef').value = ref;
+    document.getElementById('deleteReason').value = '';
+    document.getElementById('deleteModal').classList.add('open');
+  }
+
+  function confirmDelete(){
+    var ref = document.getElementById('deleteRef').value;
+    var reason = document.getElementById('deleteReason').value.trim();
+    if(!reason){alert('Please enter a reason');return;}
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){
+        if(r.success){closeModal('deleteModal');loadOrders();}
+        else alert('Error: '+r.error);
+      }).moveToDeleted({reference:ref,deleteReason:reason,deletedBy:'Admin'});
+    } else {
+      orders = orders.filter(function(o){return o.reference!==ref;});
+      closeModal('deleteModal'); renderOrders(); updateStats();
+    }
+  }
+
+  // ===== TRANSACTION MANAGEMENT =====
+  var currentTransactions = [];
+  var editingTxnId = null;
+
+  function loadTransactions(ref){
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){
+        var txns = [];
+        if(r && r.transactions) txns = r.transactions;
+        else if(Array.isArray(r)) txns = r;
+        currentTransactions = txns;
+        renderTransactions(ref);
+      }).withFailureHandler(function(e){
+        document.getElementById('txnTableContainer').innerHTML = '<p style="color:var(--danger)">Failed to load transactions: '+(e&&e.message?esc(e.message):'Unknown error')+'</p>';
+      }).getTransactionsByReference(ref);
+    } else {
+      // Demo data
+      currentTransactions = [
+        {id:'txn-001',reference:ref,date:new Date().toISOString().split('T')[0],description:'Order: 1 item(s)',amount:selectedOrder.totalAmount,type:'CHARGE',createdBy:'SYSTEM'},
+      ];
+      if(selectedOrder.paymentStatus==='paid'){
+        currentTransactions.push({id:'txn-002',reference:ref,date:new Date().toISOString().split('T')[0],description:'PayPal Payment Received',amount:-selectedOrder.totalAmount,type:'PAYMENT',createdBy:'SYSTEM'});
+      }
+      renderTransactions(ref);
+    }
+  }
+
+  function renderTransactions(ref){
+    var container = document.getElementById('txnTableContainer');
+    if(!currentTransactions.length){
+      container.innerHTML = '<p style="opacity:0.5;padding:12px;text-align:center;">No transactions recorded yet. Add one below.</p>';
+      updateBalanceSummary(0, 0, 0);
+      return;
+    }
+
+    var totalCharges=0, totalPayments=0, runningBalance=0;
+    var rows = currentTransactions.map(function(t, idx){
+      var amt = parseFloat(t.amount) || 0;
+      if(amt >= 0) totalCharges += amt; else totalPayments += Math.abs(amt);
+      runningBalance += amt;
+      var ts = formatTimestamp(t.createdAt || t.date);
+      var typeLabel = (t.type||'CHARGE').toUpperCase();
+      var typeBadge = typeLabel === 'PAYMENT' || typeLabel === 'REFUND'
+        ? '<span style="background:rgba(34,197,94,0.15);color:var(--success);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">'+typeLabel+'</span>'
+        : typeLabel === 'CHARGE'
+        ? '<span style="background:rgba(239,68,68,0.15);color:var(--danger);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">'+typeLabel+'</span>'
+        : '<span style="background:rgba(59,130,246,0.15);color:var(--info);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">'+typeLabel+'</span>';
+
+      if(editingTxnId === t.id){
+        return '<tr class="txn-edit-row" style="background:rgba(59,130,246,0.05);">'
+          +'<td><span class="txn-timestamp">'+ts+'</span></td>'
+          +'<td><input type="text" id="editDesc_'+idx+'" value="'+esc(t.description)+'"></td>'
+          +'<td colspan="2"><input type="number" id="editAmt_'+idx+'" value="'+Math.abs(amt).toFixed(2)+'" step="0.01">'
+          +'<select id="editType_'+idx+'" style="margin-top:4px;padding:6px;background:var(--bg);border:1px solid var(--gold);border-radius:4px;color:var(--text);width:100%;font-size:12px;">'
+          +'<option value="CHARGE"'+(typeLabel==='CHARGE'?' selected':'')+'>Charge</option>'
+          +'<option value="PAYMENT"'+(typeLabel==='PAYMENT'?' selected':'')+'>Payment</option>'
+          +'<option value="REFUND"'+(typeLabel==='REFUND'?' selected':'')+'>Refund</option>'
+          +'<option value="ADJUSTMENT"'+(typeLabel==='ADJUSTMENT'?' selected':'')+'>Adjustment</option>'
+          +'</select></td>'
+          +'<td></td>'
+          +'<td><div class="txn-actions">'
+          +'<button class="txn-icon-btn edit" onclick="saveEditTransaction(\''+esc(t.id)+'\','+idx+',\''+esc(ref)+'\')" title="Save"><i data-feather="check" style="width:16px;height:16px;"></i></button>'
+          +'<button class="txn-icon-btn delete" onclick="cancelEditTransaction(\''+esc(ref)+'\')" title="Cancel"><i data-feather="x" style="width:16px;height:16px;"></i></button>'
+          +'</div></td></tr>';
+      }
+
+      return '<tr>'
+        +'<td><div class="txn-timestamp">'+ts+'</div></td>'
+        +'<td>'+esc(t.description)+' '+typeBadge+'</td>'
+        +'<td class="txn-debit">'+(amt >= 0 ? '$'+amt.toFixed(2) : '')+'</td>'
+        +'<td class="txn-credit">'+(amt < 0 ? '$'+Math.abs(amt).toFixed(2) : '')+'</td>'
+        +'<td style="font-weight:700;font-variant-numeric:tabular-nums;color:'+(runningBalance>0.01?'var(--danger)':'var(--success)')+'">$'+runningBalance.toFixed(2)+'</td>'
+        +'<td><div class="txn-actions">'
+        +'<button class="txn-icon-btn edit" onclick="startEditTransaction(\''+esc(t.id)+'\',\''+esc(ref)+'\')" title="Edit"><i data-feather="edit-2" style="width:14px;height:14px;"></i></button>'
+        +'<button class="txn-icon-btn delete" onclick="deleteTransaction(\''+esc(t.id)+'\',\''+esc(ref)+'\')" title="Delete"><i data-feather="trash-2" style="width:14px;height:14px;"></i></button>'
+        +'</div></td></tr>';
+    });
+
+    var balance = totalCharges - totalPayments;
+    rows.push('<tr class="txn-balance-row">'
+      +'<td style="text-align:right;font-size:12px;">TOTALS</td>'
+      +'<td style="text-align:right;font-size:13px;">BALANCE DUE</td>'
+      +'<td class="txn-debit">$'+totalCharges.toFixed(2)+'</td>'
+      +'<td class="txn-credit">$'+totalPayments.toFixed(2)+'</td>'
+      +'<td style="color:'+(balance>0.01?'var(--danger)':'var(--success)')+'">$'+balance.toFixed(2)+'</td>'
+      +'<td></td></tr>');
+
+    container.innerHTML = '<div class="txn-table-wrapper"><table class="txn-table"><tr><th>Timestamp</th><th>Description</th><th>Debit</th><th>Credit</th><th>Running Bal.</th><th style="width:70px;"></th></tr>'
+      + rows.join('') + '</table></div>';
+
+    updateBalanceSummary(totalCharges, totalPayments, currentTransactions.length);
+    feather.replace();
+  }
+
+  function formatTimestamp(d){
+    if(!d) return '-';
+    try{
+      var dt = new Date(d);
+      return dt.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'})
+        +' '+dt.toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    }catch(e){return String(d);}
+  }
+
+  function updateBalanceSummary(charges, payments, count){
+    var balance = charges - payments;
+    var chargesEl = document.getElementById('totalCharges');
+    var paymentsEl = document.getElementById('totalPayments');
+    var balanceEl = document.getElementById('balanceDue');
+    var countEl = document.getElementById('txnCount');
+    if(chargesEl) chargesEl.textContent = '$' + charges.toFixed(2);
+    if(paymentsEl) paymentsEl.textContent = '$' + payments.toFixed(2);
+    if(countEl) countEl.textContent = count || 0;
+    if(balanceEl){
+      balanceEl.textContent = '$' + balance.toFixed(2);
+      balanceEl.style.color = balance > 0.01 ? 'var(--danger)' : 'var(--success)';
+    }
+
+    // Update the order card balance in the list too
+    if(selectedOrder){
+      selectedOrder.balance = balance;
+      // Also update payment status dynamically
+      if(balance <= 0.01 && selectedOrder.paymentStatus !== 'paid'){
+        selectedOrder.paymentStatus = 'paid';
+      } else if(balance > 0 && balance < selectedOrder.totalAmount && selectedOrder.paymentStatus !== 'partial'){
+        selectedOrder.paymentStatus = 'partial';
+      }
+      renderOrders();
+    }
+  }
+
+  function addTransaction(ref){
+    var desc = document.getElementById('txnDesc').value.trim();
+    var amount = parseFloat(document.getElementById('txnAmount').value);
+    var type = document.getElementById('txnType').value;
+    var btn = document.getElementById('txnSubmitBtn');
+
+    if(!desc){alert('Please enter a description');document.getElementById('txnDesc').focus();return;}
+    if(isNaN(amount) || amount <= 0){alert('Please enter a valid positive amount');document.getElementById('txnAmount').focus();return;}
+
+    // Payments/refunds are stored as negative amounts, charges as positive
+    var finalAmount = (type === 'PAYMENT' || type === 'REFUND') ? -Math.abs(amount) : Math.abs(amount);
+    var now = new Date().toISOString();
+
+    btn.disabled = true;
+    btn.textContent = 'Adding...';
+
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){
+        btn.disabled = false;
+        btn.innerHTML = '<i data-feather="plus-circle" style="width:14px;height:14px;margin-right:4px;display:inline;vertical-align:middle;"></i> Add';
+        feather.replace();
+        if(r.success){
+          document.getElementById('txnDesc').value = '';
+          document.getElementById('txnAmount').value = '';
+          loadTransactions(ref);
+          loadOrders();
+        } else {
+          alert('Error: ' + (r.error || 'Unknown'));
+        }
+      }).withFailureHandler(function(e){
+        btn.disabled = false;
+        btn.innerHTML = '<i data-feather="plus-circle" style="width:14px;height:14px;margin-right:4px;display:inline;vertical-align:middle;"></i> Add';
+        feather.replace();
+        alert('Error: ' + e.message);
+      }).addTransaction({reference:ref, date:now.split('T')[0], description:desc, amount:finalAmount, type:type, createdBy:'Admin'});
+    } else {
+      // Demo mode - auto-generate timestamp
+      currentTransactions.push({
+        id:'txn-'+Date.now(), reference:ref, date:now.split('T')[0],
+        description:desc, amount:finalAmount, type:type, createdBy:'Admin', createdAt:now
+      });
+      document.getElementById('txnDesc').value = '';
+      document.getElementById('txnAmount').value = '';
+      btn.disabled = false;
+      btn.innerHTML = '<i data-feather="plus-circle" style="width:14px;height:14px;margin-right:4px;display:inline;vertical-align:middle;"></i> Add';
+      renderTransactions(ref);
+    }
+  }
+
+  function startEditTransaction(txnId, ref){
+    editingTxnId = txnId;
+    renderTransactions(ref);
+  }
+
+  function cancelEditTransaction(ref){
+    editingTxnId = null;
+    renderTransactions(ref);
+  }
+
+  function saveEditTransaction(txnId, idx, ref){
+    var descEl = document.getElementById('editDesc_'+idx);
+    var amtEl = document.getElementById('editAmt_'+idx);
+    var typeEl = document.getElementById('editType_'+idx);
+    if(!descEl || !amtEl || !typeEl) return;
+
+    var desc = descEl.value.trim();
+    var amount = parseFloat(amtEl.value);
+    var type = typeEl.value;
+
+    if(!desc){alert('Description is required');return;}
+    if(isNaN(amount) || amount <= 0){alert('Please enter a valid positive amount');return;}
+
+    var finalAmount = (type === 'PAYMENT' || type === 'REFUND') ? -Math.abs(amount) : Math.abs(amount);
+
+    editingTxnId = null;
+
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){
+        if(r.success){
+          loadTransactions(ref);
+          loadOrders();
+        } else {
+          alert('Error: ' + (r.error || 'Unknown'));
+        }
+      }).withFailureHandler(function(e){
+        alert('Error: ' + e.message);
+      }).updateTransaction({transactionId:txnId, description:desc, amount:finalAmount, type:type, updatedBy:'Admin'});
+    } else {
+      // Demo mode
+      var txn = currentTransactions.find(function(t){return t.id === txnId;});
+      if(txn){
+        txn.description = desc;
+        txn.amount = finalAmount;
+        txn.type = type;
+      }
+      renderTransactions(ref);
+    }
+  }
+
+  function deleteTransaction(txnId, ref){
+    if(!confirm('Delete this transaction? The balance will be recalculated automatically.')) return;
+
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){
+        if(r.success){
+          loadTransactions(ref);
+          loadOrders();
+        } else {
+          alert('Error: ' + (r.error || 'Unknown'));
+        }
+      }).withFailureHandler(function(e){
+        alert('Error: ' + e.message);
+      }).deleteTransaction({transactionId:txnId, deletedBy:'Admin'});
+    } else {
+      currentTransactions = currentTransactions.filter(function(t){return t.id !== txnId;});
+      renderTransactions(ref);
+    }
+  }
+
+  function closeModal(id){ document.getElementById(id).classList.remove('open'); editingTxnId = null; }
+
+  function formatDate(d){
+    if(!d) return '';
+    try{ var dt=new Date(d); return dt.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'})+' '+dt.toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'}); }catch(e){return String(d);}
+  }
+
+  function loadOrders(){
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){
+        orders = r.orders || [];
+        document.getElementById('loadingState').style.display='none';
+        renderOrders(); updateStats();
+      }).withFailureHandler(function(e){
+        document.getElementById('loadingState').innerHTML='<p style="color:var(--danger)">Error loading orders: '+esc(e.message)+'</p>';
+      }).getAllOrdersWithComments();
+    } else { loadDemoOrders(); }
+  }
+
+  function loadDeletedCount(){
+    if(typeof google !== 'undefined' && google.script && google.script.run){
+      google.script.run.withSuccessHandler(function(r){
+        document.getElementById('deletedBadge').textContent = r.deletedCount || 0;
+      }).getDeletedOrdersCount();
+    }
+  }
+
+  function loadDemoOrders(){
+    orders = [
+      {reference:'2602DEMO001',timestamp:new Date().toISOString(),status:'new',customerName:'John',customerSurname:'Doe',email:'john@example.com',phone:'+27123456789',country:'South Africa',shippingAddress:'123 Art Street',city:'Johannesburg',postalCode:'2000',itemsJson:'[{"name":"Abstract Gold Horizon","quantity":1,"price":89,"original":299}]',itemCount:1,subtotal:89,shippingFee:0,discountAmount:0,totalSavings:210,totalAmount:89,paymentMethod:'eft',paymentStatus:'pending',paypalTransaction:'',eftReference:'',confirmationSent:false,trackingNumber:'',notes:'',lastUpdated:'',commentCount:1,balance:89},
+      {reference:'2602SMITH002',timestamp:new Date(Date.now()-86400000).toISOString(),status:'processing',customerName:'Jane',customerSurname:'Smith',email:'jane@example.com',phone:'',country:'USA',shippingAddress:'456 Canvas Ave',city:'New York',postalCode:'10001',itemsJson:'[{"name":"Urban Pulse Sculpture","quantity":2,"price":179,"original":450}]',itemCount:2,subtotal:358,shippingFee:0,discountAmount:0,totalSavings:542,totalAmount:358,paymentMethod:'paypal',paymentStatus:'paid',paypalTransaction:'PP-123',eftReference:'',confirmationSent:true,trackingNumber:'TRK-789',notes:'',lastUpdated:'',commentCount:3,balance:0}
+    ];
+    document.getElementById('loadingState').style.display='none';
+    renderOrders(); updateStats();
+  }
+
+  // Init
+  loadOrders();
+  loadDeletedCount();
+</script>
+</body>
+</html>
